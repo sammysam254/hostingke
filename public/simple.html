@@ -39,17 +39,17 @@
     <h1>HostingKE - Simple Test</h1>
     
     <div>
-        <button onclick="showAlert()">Test Alert</button>
-        <button onclick="showModal()">Show Modal</button>
-        <button onclick="testAPI()">Test API</button>
-        <button onclick="window.location.href='/test'">Go to Test Page</button>
+        <button id="alertBtn">Test Alert</button>
+        <button id="modalBtn">Show Modal</button>
+        <button id="apiBtn">Test API</button>
+        <button id="testPageBtn">Go to Test Page</button>
     </div>
 
     <div id="testModal" class="modal">
         <div class="modal-content">
             <h2>Test Modal</h2>
             <p>This modal works!</p>
-            <button onclick="hideModal()">Close</button>
+            <button id="closeModalBtn">Close</button>
         </div>
     </div>
 
@@ -95,6 +95,17 @@
         document.addEventListener('DOMContentLoaded', function() {
             log('Page loaded successfully');
             log('JavaScript is working');
+            
+            // Setup event listeners
+            document.getElementById('alertBtn').addEventListener('click', showAlert);
+            document.getElementById('modalBtn').addEventListener('click', showModal);
+            document.getElementById('apiBtn').addEventListener('click', testAPI);
+            document.getElementById('testPageBtn').addEventListener('click', function() {
+                window.location.href = '/test';
+            });
+            document.getElementById('closeModalBtn').addEventListener('click', hideModal);
+            
+            log('Event listeners attached');
         });
 
         log('Script loaded');

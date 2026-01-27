@@ -124,6 +124,13 @@ class HostingPlatform {
       res.sendFile(testPath);
     });
 
+    // Simple test route
+    this.app.get('/simple', (req, res) => {
+      const simplePath = path.join(process.cwd(), 'public', 'simple.html');
+      console.log('Serving simple.html from:', simplePath);
+      res.sendFile(simplePath);
+    });
+
     // Catch-all route for SPA (LAST)
     this.app.get('*', (req, res) => {
       // Only serve index.html for non-API, non-static file routes
