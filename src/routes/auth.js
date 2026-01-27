@@ -293,7 +293,7 @@ router.post('/refresh', async (req, res) => {
 router.get('/github', (req, res) => {
   const clientId = process.env.GITHUB_CLIENT_ID;
   const redirectUri = `${process.env.BASE_URL}/api/auth/github/callback`;
-  const scope = 'repo,user:email';
+  const scope = 'repo,user:email,read:user'; // Added read:user for better email access
   const state = Math.random().toString(36).substring(7);
   
   // Store state in session (in production, use proper session storage)
@@ -366,33 +366,55 @@ router.get('/github/callback', async (req, res) => {
     const githubUser = await userResponse.json();
     console.log('GitHub user:', { id: githubUser.id, login: githubUser.login, email: githubUser.email });
     
-    // Get user email
-    const emailResponse = await fetch('https://api.github.com/user/emails', {
-      headers: {
-        'Authorization': `token ${tokenData.access_token}`,
-        'User-Agent': 'HostingKE-App',
-      },
-    });
-    
+    // Get user email with multiple fallback strategies
     let primaryEmail = githubUser.email;
-    if (emailResponse.ok) {
-      const emails = await emailResponse.json();
-      primaryEmail = emails.find(email => email.primary)?.email || githubUser.email;
-    }
     
     if (!primaryEmail) {
-      console.error('No email found for GitHub user');
-      return res.redirect(`${process.env.BASE_URL}?error=no_email&message=No email found for GitHub user`);
+      console.log('No public email, trying to get private emails...');
+      const emailResponse = await fetch('https://api.github.com/user/emails', {
+        headers: {
+          'Authorization': `token ${tokenData.access_token}`,
+          'User-Agent': 'HostingKE-App',
+        },
+      });
+      
+      if (emailResponse.ok) {
+        const emails = await emailResponse.json();
+        console.log('Available emails:', emails.map(e => ({ email: e.email, primary: e.primary, verified: e.verified })));
+        
+        // Try to find primary verified email
+        const primaryVerified = emails.find(email => email.primary && email.verified);
+        if (primaryVerified) {
+          primaryEmail = primaryVerified.email;
+        } else {
+          // Fallback to any verified email
+          const anyVerified = emails.find(email => email.verified);
+          if (anyVerified) {
+            primaryEmail = anyVerified.email;
+          } else {
+            // Last resort: use any email
+            if (emails.length > 0) {
+              primaryEmail = emails[0].email;
+            }
+          }
+        }
+      }
     }
     
-    console.log('Primary email:', primaryEmail);
+    // If still no email, use GitHub username as identifier
+    if (!primaryEmail) {
+      console.log('No email found, using GitHub username as identifier');
+      primaryEmail = `${githubUser.login}@github.local`; // Temporary email format
+    }
+    
+    console.log('Using email:', primaryEmail);
     
     // Check if user exists in our system
     console.log('Checking for existing user...');
     let { data: existingUser, error: userError } = await SupabaseService.getAdminClient()
       .from('users')
       .select('*')
-      .eq('email', primaryEmail)
+      .or(`email.eq.${primaryEmail},git_providers->>username.eq.${githubUser.login}`)
       .single();
     
     if (userError && userError.code !== 'PGRST116') {
