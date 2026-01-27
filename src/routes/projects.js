@@ -15,7 +15,39 @@ router.get('/', async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch projects' });
     }
 
-    res.json(projects || []);
+    // Get deployment counts and other stats
+    const projectsWithStats = await Promise.all((projects || []).map(async (project) => {
+      try {
+        const { data: deployments } = await SupabaseService.getAdminClient()
+          .from('deployments')
+          .select('id, status')
+          .eq('project_id', project.id);
+
+        const deploymentCount = deployments?.length || 0;
+        const successfulDeployments = deployments?.filter(d => d.status === 'ready').length || 0;
+
+        return {
+          ...project,
+          deployment_count: deploymentCount,
+          successful_deployments: successfulDeployments,
+          url: project.slug ? `https://${project.slug}.hostingke.com` : null
+        };
+      } catch (err) {
+        console.error('Error getting project stats:', err);
+        return project;
+      }
+    }));
+
+    // Calculate totals
+    const totalDeployments = projectsWithStats.reduce((sum, p) => sum + (p.deployment_count || 0), 0);
+    const totalDomains = projectsWithStats.filter(p => p.url).length;
+
+    res.json({
+      projects: projectsWithStats,
+      totalDeployments,
+      totalDomains,
+      totalViews: 0 // TODO: Implement analytics
+    });
   } catch (error) {
     console.error('Get projects error:', error);
     res.status(500).json({ error: 'Failed to fetch projects' });
@@ -25,10 +57,11 @@ router.get('/', async (req, res) => {
 // Create new project
 router.post('/', async (req, res) => {
   try {
-    const { name, repository, buildSettings } = req.body;
+    console.log('Creating project with data:', req.body);
+    const { name, repository_url, branch, build_settings, git_provider } = req.body;
 
-    if (!name) {
-      return res.status(400).json({ error: 'Project name is required' });
+    if (!name || !repository_url) {
+      return res.status(400).json({ error: 'Project name and repository URL are required' });
     }
 
     // Generate unique slug
@@ -53,19 +86,18 @@ router.post('/', async (req, res) => {
     const projectData = {
       name,
       slug,
-      repository: repository || {},
+      repository_url,
+      branch: branch || 'main',
       build_settings: {
-        command: buildSettings?.command || 'npm run build',
-        directory: buildSettings?.directory || 'dist',
-        environment: buildSettings?.environment || {}
+        command: build_settings?.command || null,
+        directory: build_settings?.directory || null,
+        environment: {}
       },
-      domains: [{
-        domain: `${slug}.yourplatform.com`,
-        is_custom: false,
-        ssl_enabled: true,
-        verified: true
-      }]
+      git_provider: git_provider || 'github',
+      status: 'pending'
     };
+
+    console.log('Creating project with processed data:', projectData);
 
     const { data: project, error } = await SupabaseService.createProject(req.user.id, projectData);
 
@@ -74,22 +106,37 @@ router.post('/', async (req, res) => {
       return res.status(500).json({ error: 'Failed to create project' });
     }
 
-    // Setup webhook if repository is provided
-    if (repository?.url) {
-      try {
-        const gitProvider = req.user.git_providers?.find(p => p.provider === repository.provider);
+    console.log('Project created successfully:', project.id);
+
+    // Trigger initial deployment
+    try {
+      console.log('Triggering initial deployment...');
+      const deploymentData = {
+        project_id: project.id,
+        commit_sha: null,
+        commit_message: 'Initial deployment',
+        branch: branch || 'main',
+        environment: 'production',
+        status: 'pending'
+      };
+
+      const { data: deployment, error: deployError } = await SupabaseService.createDeployment(deploymentData);
+
+      if (deployError) {
+        console.error('Failed to create initial deployment:', deployError);
+      } else {
+        console.log('Initial deployment created:', deployment.id);
         
-        if (gitProvider) {
-          const webhookUrl = `${process.env.BASE_URL || 'http://localhost:3000'}/api/webhooks/git`;
-          await GitService.setupWebhook(repository.url, gitProvider.access_token, webhookUrl);
-        }
-      } catch (webhookError) {
-        console.error('Webhook setup failed:', webhookError);
-        // Continue without webhook - user can set it up manually
+        // Start deployment process (async)
+        DeploymentService.processDeployment(deployment.id).catch(err => {
+          console.error('Deployment processing failed:', err);
+        });
       }
+    } catch (deploymentError) {
+      console.error('Deployment trigger failed:', deploymentError);
     }
 
-    res.status(201).json(project);
+    res.status(201).json({ project });
   } catch (error) {
     console.error('Create project error:', error);
     res.status(500).json({ error: 'Failed to create project' });
@@ -158,6 +205,52 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error('Delete project error:', error);
     res.status(500).json({ error: 'Failed to delete project' });
+  }
+});
+
+// Deploy project
+router.post('/:id/deploy', async (req, res) => {
+  try {
+    console.log('Manual deployment triggered for project:', req.params.id);
+    
+    // Get project details
+    const { data: project, error: projectError } = await SupabaseService.getProject(req.params.id, req.user.id);
+
+    if (projectError || !project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Create deployment record
+    const deploymentData = {
+      project_id: project.id,
+      commit_sha: null,
+      commit_message: 'Manual deployment',
+      branch: project.branch || 'main',
+      environment: 'production',
+      status: 'pending'
+    };
+
+    const { data: deployment, error: deployError } = await SupabaseService.createDeployment(deploymentData);
+
+    if (deployError) {
+      console.error('Failed to create deployment:', deployError);
+      return res.status(500).json({ error: 'Failed to create deployment' });
+    }
+
+    console.log('Deployment created:', deployment.id);
+
+    // Start deployment process (async)
+    DeploymentService.processDeployment(deployment.id).catch(err => {
+      console.error('Deployment processing failed:', err);
+    });
+
+    res.json({ 
+      message: 'Deployment started successfully',
+      deployment: deployment
+    });
+  } catch (error) {
+    console.error('Deploy project error:', error);
+    res.status(500).json({ error: 'Failed to start deployment' });
   }
 });
 
