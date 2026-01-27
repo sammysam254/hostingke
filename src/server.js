@@ -5,6 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('rate-limiter-flexible');
+const path = require('path');
 
 // Import route modules
 const authRoutes = require('./routes/auth');
@@ -66,6 +67,9 @@ class HostingPlatform {
   }
 
   setupRoutes() {
+    // Serve static files from public directory
+    this.app.use(express.static('public'));
+
     // API routes
     this.app.use('/api/auth', authRoutes);
     this.app.use('/api/projects', authMiddleware, projectRoutes);
@@ -84,6 +88,13 @@ class HostingPlatform {
 
     // Static file serving for deployed sites
     this.app.use('/sites', express.static('deployed-sites'));
+
+    // Serve index.html for all non-API routes (SPA support)
+    this.app.get('*', (req, res) => {
+      if (!req.path.startsWith('/api')) {
+        res.sendFile(path.join(__dirname, '../public/index.html'));
+      }
+    });
 
     // Error handling
     this.app.use(errorHandler);
