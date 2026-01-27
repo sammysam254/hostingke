@@ -308,12 +308,20 @@ router.get('/github', (req, res) => {
 // GitHub OAuth - Handle callback
 router.get('/github/callback', async (req, res) => {
   try {
-    const { code, state } = req.query;
+    console.log('GitHub OAuth callback received:', req.query);
+    const { code, state, error } = req.query;
     
-    if (!code) {
-      return res.status(400).json({ error: 'Authorization code not provided' });
+    if (error) {
+      console.error('GitHub OAuth error:', error);
+      return res.redirect(`${process.env.BASE_URL}?error=oauth_error&message=${encodeURIComponent(error)}`);
     }
     
+    if (!code) {
+      console.error('No authorization code provided');
+      return res.redirect(`${process.env.BASE_URL}?error=no_code&message=Authorization code not provided`);
+    }
+    
+    console.log('Exchanging code for access token...');
     // Exchange code for access token
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
@@ -329,11 +337,19 @@ router.get('/github/callback', async (req, res) => {
     });
     
     const tokenData = await tokenResponse.json();
+    console.log('Token response:', { ...tokenData, access_token: tokenData.access_token ? '[REDACTED]' : undefined });
     
     if (tokenData.error) {
-      return res.status(400).json({ error: tokenData.error_description });
+      console.error('GitHub token error:', tokenData.error_description);
+      return res.redirect(`${process.env.BASE_URL}?error=token_error&message=${encodeURIComponent(tokenData.error_description)}`);
     }
     
+    if (!tokenData.access_token) {
+      console.error('No access token received');
+      return res.redirect(`${process.env.BASE_URL}?error=no_token&message=No access token received`);
+    }
+    
+    console.log('Getting user info from GitHub...');
     // Get user info from GitHub
     const userResponse = await fetch('https://api.github.com/user', {
       headers: {
@@ -342,7 +358,13 @@ router.get('/github/callback', async (req, res) => {
       },
     });
     
+    if (!userResponse.ok) {
+      console.error('Failed to get GitHub user info:', userResponse.status);
+      return res.redirect(`${process.env.BASE_URL}?error=user_info_error&message=Failed to get user info`);
+    }
+    
     const githubUser = await userResponse.json();
+    console.log('GitHub user:', { id: githubUser.id, login: githubUser.login, email: githubUser.email });
     
     // Get user email
     const emailResponse = await fetch('https://api.github.com/user/emails', {
@@ -352,10 +374,21 @@ router.get('/github/callback', async (req, res) => {
       },
     });
     
-    const emails = await emailResponse.json();
-    const primaryEmail = emails.find(email => email.primary)?.email || githubUser.email;
+    let primaryEmail = githubUser.email;
+    if (emailResponse.ok) {
+      const emails = await emailResponse.json();
+      primaryEmail = emails.find(email => email.primary)?.email || githubUser.email;
+    }
+    
+    if (!primaryEmail) {
+      console.error('No email found for GitHub user');
+      return res.redirect(`${process.env.BASE_URL}?error=no_email&message=No email found for GitHub user`);
+    }
+    
+    console.log('Primary email:', primaryEmail);
     
     // Check if user exists in our system
+    console.log('Checking for existing user...');
     let { data: existingUser, error: userError } = await SupabaseService.getAdminClient()
       .from('users')
       .select('*')
@@ -364,10 +397,20 @@ router.get('/github/callback', async (req, res) => {
     
     if (userError && userError.code !== 'PGRST116') {
       console.error('Error checking existing user:', userError);
-      return res.status(500).json({ error: 'Database error' });
+      return res.redirect(`${process.env.BASE_URL}?error=database_error&message=Database error`);
     }
     
+    // Prepare GitHub provider data
+    const githubProvider = {
+      provider: 'github',
+      access_token: tokenData.access_token,
+      username: githubUser.login,
+      user_id: githubUser.id,
+      avatar_url: githubUser.avatar_url
+    };
+    
     if (!existingUser) {
+      console.log('Creating new user...');
       // Create new user
       const { data: newUser, error: createError } = await SupabaseService.getAdminClient()
         .from('users')
@@ -375,34 +418,43 @@ router.get('/github/callback', async (req, res) => {
           email: primaryEmail,
           name: githubUser.name || githubUser.login,
           avatar: githubUser.avatar_url,
-          github_id: githubUser.id,
-          github_username: githubUser.login,
-          github_access_token: tokenData.access_token,
+          git_providers: [githubProvider]
         })
         .select()
         .single();
       
       if (createError) {
         console.error('Error creating user:', createError);
-        return res.status(500).json({ error: 'Failed to create user' });
+        return res.redirect(`${process.env.BASE_URL}?error=create_user_error&message=Failed to create user`);
       }
       
       existingUser = newUser;
+      console.log('New user created:', existingUser.id);
     } else {
+      console.log('Updating existing user with GitHub info...');
       // Update existing user with GitHub info
+      let gitProviders = existingUser.git_providers || [];
+      
+      // Remove existing GitHub provider
+      gitProviders = gitProviders.filter(p => p.provider !== 'github');
+      
+      // Add new GitHub provider
+      gitProviders.push(githubProvider);
+      
       const { error: updateError } = await SupabaseService.getAdminClient()
         .from('users')
         .update({
-          github_id: githubUser.id,
-          github_username: githubUser.login,
-          github_access_token: tokenData.access_token,
+          git_providers: gitProviders,
           avatar: githubUser.avatar_url,
         })
         .eq('id', existingUser.id);
       
       if (updateError) {
         console.error('Error updating user:', updateError);
+        return res.redirect(`${process.env.BASE_URL}?error=update_user_error&message=Failed to update user`);
       }
+      
+      console.log('User updated with GitHub info');
     }
     
     // Create session token (simplified - in production use proper JWT)
@@ -412,12 +464,13 @@ router.get('/github/callback', async (req, res) => {
       exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
     })).toString('base64');
     
+    console.log('Redirecting to frontend with success...');
     // Redirect to frontend with token
-    res.redirect(`${process.env.BASE_URL}?token=${sessionToken}&github=connected`);
+    res.redirect(`${process.env.BASE_URL}?token=${sessionToken}&github=connected&success=true`);
     
   } catch (error) {
     console.error('GitHub OAuth error:', error);
-    res.status(500).json({ error: 'OAuth authentication failed' });
+    res.redirect(`${process.env.BASE_URL}?error=oauth_failed&message=${encodeURIComponent(error.message)}`);
   }
 });
 
@@ -440,18 +493,25 @@ router.get('/github/repos', async (req, res) => {
     // Get user profile to get GitHub access token
     const { data: userProfile, error: profileError } = await SupabaseService.getAdminClient()
       .from('users')
-      .select('github_access_token, github_username')
+      .select('git_providers')
       .eq('id', authData.user.id)
       .single();
 
-    if (profileError || !userProfile.github_access_token) {
+    if (profileError) {
+      return res.status(400).json({ error: 'User not found' });
+    }
+
+    // Find GitHub provider
+    const githubProvider = userProfile.git_providers?.find(p => p.provider === 'github');
+    
+    if (!githubProvider || !githubProvider.access_token) {
       return res.status(400).json({ error: 'GitHub not connected' });
     }
 
     // Fetch repositories from GitHub
     const reposResponse = await fetch('https://api.github.com/user/repos?sort=updated&per_page=100', {
       headers: {
-        'Authorization': `token ${userProfile.github_access_token}`,
+        'Authorization': `token ${githubProvider.access_token}`,
         'User-Agent': 'HostingKE-App',
       },
     });

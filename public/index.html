@@ -308,11 +308,84 @@
         // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
             console.log('HostingKE initialized - DOM ready');
+            
+            // Handle URL parameters (for OAuth callbacks)
+            handleUrlParameters();
+            
             setupEventListeners();
             if (authToken) {
                 checkAuthStatus();
             }
         });
+
+        // Handle URL parameters from OAuth callbacks
+        function handleUrlParameters() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Handle GitHub OAuth success
+            if (urlParams.get('github') === 'connected' && urlParams.get('success') === 'true') {
+                const token = urlParams.get('token');
+                if (token) {
+                    // Store the session token
+                    localStorage.setItem('sessionToken', token);
+                    
+                    // Show success message
+                    alert('GitHub connected successfully! You can now access your repositories.');
+                    
+                    // Clean up URL
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    
+                    // Show dashboard if user is authenticated
+                    showDashboard();
+                }
+            }
+            
+            // Handle OAuth errors
+            const error = urlParams.get('error');
+            const message = urlParams.get('message');
+            if (error) {
+                console.error('OAuth error:', error, message);
+                let errorMessage = 'GitHub connection failed.';
+                
+                switch (error) {
+                    case 'oauth_error':
+                        errorMessage = 'GitHub authorization was denied or failed.';
+                        break;
+                    case 'no_code':
+                        errorMessage = 'No authorization code received from GitHub.';
+                        break;
+                    case 'token_error':
+                        errorMessage = 'Failed to exchange authorization code for access token.';
+                        break;
+                    case 'no_token':
+                        errorMessage = 'No access token received from GitHub.';
+                        break;
+                    case 'user_info_error':
+                        errorMessage = 'Failed to get user information from GitHub.';
+                        break;
+                    case 'no_email':
+                        errorMessage = 'No email address found in your GitHub account.';
+                        break;
+                    case 'database_error':
+                        errorMessage = 'Database error occurred during GitHub connection.';
+                        break;
+                    case 'create_user_error':
+                        errorMessage = 'Failed to create user account.';
+                        break;
+                    case 'update_user_error':
+                        errorMessage = 'Failed to update user account with GitHub information.';
+                        break;
+                    case 'oauth_failed':
+                        errorMessage = message ? decodeURIComponent(message) : 'GitHub OAuth failed.';
+                        break;
+                }
+                
+                alert(errorMessage + ' Please try again.');
+                
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
 
         // Setup all event listeners
         function setupEventListeners() {
