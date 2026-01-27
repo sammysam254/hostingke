@@ -8,37 +8,9 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .card-hover { transition: transform 0.2s; }
-        .card-hover:hover { transform: translateY(-2px); }
-        .git-provider-btn { transition: all 0.2s ease; }
-        .git-provider-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .step { transition: opacity 0.3s ease; }
-        
-        /* Ensure all buttons are clickable */
-        button {
-            cursor: pointer !important;
-            pointer-events: auto !important;
-            position: relative !important;
-            z-index: 10 !important;
-        }
-        
-        button:hover {
-            opacity: 0.9;
-        }
-        
-        /* Fix any potential overlay issues */
-        .fixed {
-            z-index: 9999 !important;
-        }
-        
-        /* Debug styles - remove after testing */
-        #loginBtn, #signupBtn, #getStartedBtn {
-            border: 2px solid red !important;
-            background-color: blue !important;
-            color: white !important;
-            padding: 10px !important;
-            cursor: pointer !important;
-        }
+        .modal { display: none; }
+        .modal.show { display: flex; }
+        button { cursor: pointer !important; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -52,15 +24,15 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <button id="loginBtn" class="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">Login</button>
-                    <button id="signupBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">Sign Up</button>
+                    <button onclick="showLogin()" class="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">Login</button>
+                    <button onclick="showSignup()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">Sign Up</button>
                     <div id="userMenu" class="hidden relative">
-                        <button id="userMenuBtn" class="flex items-center text-gray-700 hover:text-indigo-600">
+                        <button onclick="toggleUserMenu()" class="flex items-center text-gray-700 hover:text-indigo-600">
                             <i class="fas fa-user-circle text-2xl"></i>
                         </button>
                         <div id="userDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1">
-                            <a href="#" id="dashboardLink" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Dashboard</a>
-                            <a href="#" id="logoutBtn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
+                            <a href="#" onclick="showDashboard()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Dashboard</a>
+                            <a href="#" onclick="logout()" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</a>
                         </div>
                     </div>
                 </div>
@@ -84,7 +56,7 @@
                             Connect your Git repository and deploy your static sites, React apps, and Node.js applications with zero configuration.
                         </p>
                         <div class="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
-                            <button id="getStartedBtn" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10">
+                            <button onclick="showSignup()" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10">
                                 Get Started Free
                             </button>
                         </div>
@@ -148,10 +120,10 @@
                 </div>
             </div>
         </div>
+
         <!-- Dashboard (Hidden by default) -->
         <div id="dashboardPage" class="hidden">
             <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-                <!-- Dashboard Header -->
                 <div class="px-4 py-6 sm:px-0">
                     <div class="border-4 border-dashed border-gray-200 rounded-lg p-6">
                         <h1 class="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
@@ -223,372 +195,194 @@
                             </div>
                         </div>
 
-                        <!-- Recent Projects -->
+                        <!-- Projects Section -->
                         <div class="bg-white shadow overflow-hidden sm:rounded-md">
                             <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
                                 <div>
                                     <h3 class="text-lg leading-6 font-medium text-gray-900">Your Projects</h3>
                                     <p class="mt-1 max-w-2xl text-sm text-gray-500">Deploy and manage your websites</p>
                                 </div>
-                                <button id="newProjectBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                                <button onclick="showCreateProject()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
                                     <i class="fas fa-plus mr-2"></i>New Project
                                 </button>
                             </div>
-                            <ul id="projectsList" class="divide-y divide-gray-200">
-                                <li class="px-4 py-4 text-center text-gray-500">
-                                    <i class="fas fa-rocket text-4xl mb-2 text-gray-300"></i>
-                                    <p class="text-lg font-medium">Ready to deploy your first site?</p>
-                                    <p class="text-sm mb-4">Connect your Git repository and go live in seconds!</p>
-                                    <button id="createFirstProjectBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-md font-medium">
-                                        <i class="fas fa-plus mr-2"></i>Create Your First Project
-                                    </button>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Create Project Modal -->
-        <div id="createProjectModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div class="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
-                <div class="mt-3">
-                    <h3 class="text-xl font-medium text-gray-900 text-center mb-6">Create New Project</h3>
-                    
-                    <!-- Step 1: Git Provider Selection -->
-                    <div id="step1" class="step">
-                        <h4 class="text-lg font-medium mb-4">Step 1: Connect Your GitHub</h4>
-                        <div class="text-center">
-                            <div id="githubNotConnected" class="mb-6">
-                                <i class="fab fa-github text-6xl text-gray-400 mb-4"></i>
-                                <p class="text-gray-600 mb-4">Connect your GitHub account to access your repositories</p>
-                                <button id="connectGitHubBtn" class="bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-md font-medium">
-                                    <i class="fab fa-github mr-2"></i>Connect GitHub
-                                </button>
-                            </div>
-                            <div id="githubConnected" class="hidden mb-6">
-                                <i class="fab fa-github text-6xl text-green-600 mb-4"></i>
-                                <p class="text-green-600 mb-4">✅ GitHub Connected Successfully!</p>
-                                <button id="nextStepBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-md font-medium">
-                                    Choose Repository <i class="fas fa-arrow-right ml-2"></i>
+                            <div id="projectsList" class="p-8 text-center text-gray-500">
+                                <i class="fas fa-rocket text-4xl mb-2 text-gray-300"></i>
+                                <p class="text-lg font-medium">Ready to deploy your first site?</p>
+                                <p class="text-sm mb-4">Connect your Git repository and go live in seconds!</p>
+                                <button onclick="showCreateProject()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-md font-medium">
+                                    <i class="fas fa-plus mr-2"></i>Create Your First Project
                                 </button>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Step 2: Repository Selection -->
-                    <div id="step2" class="step hidden">
-                        <h4 class="text-lg font-medium mb-4">Step 2: Select Repository</h4>
-                        <div class="mb-4">
-                            <div id="repoLoading" class="text-center py-8">
-                                <i class="fas fa-spinner fa-spin text-2xl text-indigo-600 mb-2"></i>
-                                <p>Loading your repositories...</p>
-                            </div>
-                            <div id="repoList" class="hidden max-h-64 overflow-y-auto border border-gray-200 rounded-md">
-                                <!-- Repositories will be loaded here -->
-                            </div>
-                            <div id="repoError" class="hidden text-center py-8 text-red-600">
-                                <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-                                <p>Failed to load repositories. Please try again.</p>
-                            </div>
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Selected Repository</label>
-                            <input type="text" id="selectedRepo" readonly class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Branch</label>
-                            <input type="text" id="repoBranch" value="main" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                    </div>
-
-                    <!-- Step 3: Project Configuration -->
-                    <div id="step3" class="step hidden">
-                        <h4 class="text-lg font-medium mb-4">Step 3: Configure Project</h4>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Project Name</label>
-                            <input type="text" id="projectName" placeholder="my-awesome-site" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Build Command (optional)</label>
-                            <input type="text" id="buildCommand" placeholder="npm run build" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <p class="text-sm text-gray-500 mt-1">Leave empty for static sites</p>
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Publish Directory (optional)</label>
-                            <input type="text" id="publishDir" placeholder="dist" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <p class="text-sm text-gray-500 mt-1">Directory containing built files (e.g., dist, build, public)</p>
-                        </div>
-                    </div>
-
-                    <!-- Navigation Buttons -->
-                    <div class="flex justify-between mt-6">
-                        <button id="prevStepBtn" class="hidden px-4 py-2 text-gray-600 hover:text-gray-800">
-                            <i class="fas fa-arrow-left mr-2"></i>Previous
-                        </button>
-                        <div class="flex space-x-3">
-                            <button id="nextStepBtn" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md">
-                                Next<i class="fas fa-arrow-right ml-2"></i>
-                            </button>
-                            <button id="createProjectSubmitBtn" class="hidden bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md">
-                                <i class="fas fa-rocket mr-2"></i>Deploy Project
-                            </button>
-                            <button id="closeCreateProjectModal" class="px-4 py-2 text-gray-600 hover:text-gray-800">Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Login Modal -->
-        <div id="loginModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                <div class="mt-3">
-                    <h3 class="text-lg font-medium text-gray-900 text-center">Login to HostingKE</h3>
-                    <form id="loginForm" class="mt-6">
-                        <div class="mb-4">
-                            <label class="block text-gray-700 text-sm font-bold mb-2">Email</label>
-                            <input type="email" id="loginEmail" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div class="mb-6">
-                            <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
-                            <input type="password" id="loginPassword" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                                Login
-                            </button>
-                        </div>
-                    </form>
-                    <div class="mt-4 text-center">
-                        <button id="closeLoginModal" class="text-gray-500 hover:text-gray-700">Cancel</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Signup Modal -->
-        <div id="signupModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                <div class="mt-3">
-                    <h3 class="text-lg font-medium text-gray-900 text-center">Sign Up for HostingKE</h3>
-                    <form id="signupForm" class="mt-6">
-                        <div class="mb-4">
-                            <label class="block text-gray-700 text-sm font-bold mb-2">Name</label>
-                            <input type="text" id="signupName" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div class="mb-4">
-                            <label class="block text-gray-700 text-sm font-bold mb-2">Email</label>
-                            <input type="email" id="signupEmail" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div class="mb-6">
-                            <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
-                            <input type="password" id="signupPassword" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                                Sign Up
-                            </button>
-                        </div>
-                    </form>
-                    <div class="mt-4 text-center">
-                        <button id="closeSignupModal" class="text-gray-500 hover:text-gray-700">Cancel</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- JavaScript -->
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 text-center">Login to HostingKE</h3>
+                <form onsubmit="handleLogin(event)" class="mt-6">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Email</label>
+                        <input type="email" id="loginEmail" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                        <input type="password" id="loginPassword" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                            Login
+                        </button>
+                    </div>
+                </form>
+                <div class="mt-4 text-center">
+                    <button onclick="hideLogin()" class="text-gray-500 hover:text-gray-700">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signup Modal -->
+    <div id="signupModal" class="modal fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 text-center">Sign Up for HostingKE</h3>
+                <form onsubmit="handleSignup(event)" class="mt-6">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Name</label>
+                        <input type="text" id="signupName" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Email</label>
+                        <input type="email" id="signupEmail" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Password</label>
+                        <input type="password" id="signupPassword" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                            Sign Up
+                        </button>
+                    </div>
+                </form>
+                <div class="mt-4 text-center">
+                    <button onclick="hideSignup()" class="text-gray-500 hover:text-gray-700">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Project Modal -->
+    <div id="createProjectModal" class="modal fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-xl font-medium text-gray-900 text-center mb-6">Create New Project</h3>
+                
+                <div class="mb-6">
+                    <button onclick="connectGitHub()" class="w-full bg-gray-900 hover:bg-gray-800 text-white px-6 py-4 rounded-md font-medium">
+                        <i class="fab fa-github mr-2 text-xl"></i>Connect GitHub & Deploy
+                    </button>
+                    <p class="text-sm text-gray-500 mt-2 text-center">Connect your GitHub account to access all your repositories</p>
+                </div>
+
+                <div class="text-center">
+                    <button onclick="hideCreateProject()" class="px-4 py-2 text-gray-600 hover:text-gray-800">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Global state
+        // Global variables
         let currentUser = null;
         let authToken = localStorage.getItem('authToken');
-
-        // API base URL
         const API_BASE = '/api';
 
-        // Initialize app
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, initializing app...');
-            
-            // Add debug info
-            console.log('Document ready state:', document.readyState);
-            console.log('Available buttons:', {
-                loginBtn: document.getElementById('loginBtn'),
-                signupBtn: document.getElementById('signupBtn'),
-                getStartedBtn: document.getElementById('getStartedBtn')
-            });
-            
-            initializeApp();
-            setupEventListeners();
-            
-            // Add click test for debugging
-            setTimeout(() => {
-                const testBtn = document.getElementById('loginBtn');
-                if (testBtn) {
-                    console.log('Login button found, adding test click handler');
-                    testBtn.addEventListener('click', function() {
-                        console.log('TEST: Login button clicked via addEventListener!');
-                        alert('Login button works!');
-                    });
-                }
-            }, 500);
-            
-            // Check for GitHub OAuth callback
-            const urlParams = new URLSearchParams(window.location.search);
-            const token = urlParams.get('token');
-            const githubConnected = urlParams.get('github');
-            
-            if (token && githubConnected) {
-                console.log('GitHub OAuth callback detected');
-                authToken = token;
-                localStorage.setItem('authToken', authToken);
-                checkAuthStatus();
-                // Clean URL
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
-            
-            // Check if user is logged in
+            console.log('HostingKE initialized');
             if (authToken) {
                 checkAuthStatus();
             }
         });
 
-        function initializeApp() {
-            // Show landing page by default
-            showLandingPage();
+        // Modal functions
+        function showLogin() {
+            console.log('Showing login modal');
+            document.getElementById('loginModal').classList.add('show');
         }
 
-        function setupEventListeners() {
-            console.log('Setting up event listeners...');
-            
-            // Wait a bit for DOM to be fully ready
-            setTimeout(() => {
-                // Navigation buttons
-                const loginBtn = document.getElementById('loginBtn');
-                const signupBtn = document.getElementById('signupBtn');
-                const getStartedBtn = document.getElementById('getStartedBtn');
-                
-                console.log('Found elements:', {
-                    loginBtn: !!loginBtn,
-                    signupBtn: !!signupBtn,
-                    getStartedBtn: !!getStartedBtn
-                });
-                
-                if (loginBtn) {
-                    loginBtn.style.cursor = 'pointer';
-                    loginBtn.onclick = function(e) {
-                        console.log('Login button clicked!');
-                        e.preventDefault();
-                        e.stopPropagation();
-                        showLoginModal();
-                        return false;
-                    };
-                    console.log('Login button event attached');
-                }
-                
-                if (signupBtn) {
-                    signupBtn.style.cursor = 'pointer';
-                    signupBtn.onclick = function(e) {
-                        console.log('Signup button clicked!');
-                        e.preventDefault();
-                        e.stopPropagation();
-                        showSignupModal();
-                        return false;
-                    };
-                    console.log('Signup button event attached');
-                }
-                
-                if (getStartedBtn) {
-                    getStartedBtn.style.cursor = 'pointer';
-                    getStartedBtn.onclick = function(e) {
-                        console.log('Get started button clicked!');
-                        e.preventDefault();
-                        e.stopPropagation();
-                        showSignupModal();
-                        return false;
-                    };
-                    console.log('Get started button event attached');
-                }
+        function hideLogin() {
+            console.log('Hiding login modal');
+            document.getElementById('loginModal').classList.remove('show');
+        }
 
-                // Modal close buttons
-                const closeLoginModal = document.getElementById('closeLoginModal');
-                const closeSignupModal = document.getElementById('closeSignupModal');
-                
-                if (closeLoginModal) {
-                    closeLoginModal.onclick = function(e) {
-                        e.preventDefault();
-                        hideLoginModal();
-                        return false;
-                    };
-                }
-                
-                if (closeSignupModal) {
-                    closeSignupModal.onclick = function(e) {
-                        e.preventDefault();
-                        hideSignupModal();
-                        return false;
-                    };
-                }
+        function showSignup() {
+            console.log('Showing signup modal');
+            document.getElementById('signupModal').classList.add('show');
+        }
 
-                // Forms
-                const loginForm = document.getElementById('loginForm');
-                const signupForm = document.getElementById('signupForm');
-                
-                if (loginForm) {
-                    loginForm.onsubmit = function(e) {
-                        e.preventDefault();
-                        handleLogin(e);
-                        return false;
-                    };
-                }
-                
-                if (signupForm) {
-                    signupForm.onsubmit = function(e) {
-                        e.preventDefault();
-                        handleSignup(e);
-                        return false;
-                    };
-                }
+        function hideSignup() {
+            console.log('Hiding signup modal');
+            document.getElementById('signupModal').classList.remove('show');
+        }
 
-                // User menu and other buttons
-                const userMenuBtn = document.getElementById('userMenuBtn');
-                const logoutBtn = document.getElementById('logoutBtn');
-                const dashboardLink = document.getElementById('dashboardLink');
-                
-                if (userMenuBtn) {
-                    userMenuBtn.onclick = function(e) {
-                        e.preventDefault();
-                        toggleUserMenu();
-                        return false;
-                    };
-                }
-                
-                if (logoutBtn) {
-                    logoutBtn.onclick = function(e) {
-                        e.preventDefault();
-                        logout();
-                        return false;
-                    };
-                }
-                
-                if (dashboardLink) {
-                    dashboardLink.onclick = function(e) {
-                        e.preventDefault();
-                        showDashboard();
-                        return false;
-                    };
-                }
+        function showCreateProject() {
+            console.log('Showing create project modal');
+            document.getElementById('createProjectModal').classList.add('show');
+        }
 
-                console.log('All event listeners set up successfully!');
-            }, 100);
+        function hideCreateProject() {
+            console.log('Hiding create project modal');
+            document.getElementById('createProjectModal').classList.remove('show');
+        }
+
+        function showDashboard() {
+            console.log('Showing dashboard');
+            document.getElementById('landingPage').classList.add('hidden');
+            document.getElementById('dashboardPage').classList.remove('hidden');
+            loadDashboardData();
+        }
+
+        function showLanding() {
+            console.log('Showing landing page');
+            document.getElementById('landingPage').classList.remove('hidden');
+            document.getElementById('dashboardPage').classList.add('hidden');
+        }
+
+        function toggleUserMenu() {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        function updateNavigation() {
+            const userMenu = document.getElementById('userMenu');
+            const loginBtn = document.querySelector('button[onclick="showLogin()"]');
+            const signupBtn = document.querySelector('button[onclick="showSignup()"]');
+
+            if (currentUser) {
+                userMenu.classList.remove('hidden');
+                if (loginBtn) loginBtn.style.display = 'none';
+                if (signupBtn) signupBtn.style.display = 'none';
+            } else {
+                userMenu.classList.add('hidden');
+                if (loginBtn) loginBtn.style.display = 'block';
+                if (signupBtn) signupBtn.style.display = 'block';
+            }
         }
 
         // Authentication functions
-        async function handleLogin(e) {
-            e.preventDefault();
+        async function handleLogin(event) {
+            event.preventDefault();
+            console.log('Handling login...');
+            
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
 
@@ -600,14 +394,16 @@
                 });
 
                 const data = await response.json();
-                
+                console.log('Login response:', data);
+
                 if (response.ok) {
                     authToken = data.access_token;
                     currentUser = data.user;
                     localStorage.setItem('authToken', authToken);
-                    hideLoginModal();
+                    hideLogin();
                     showDashboard();
                     updateNavigation();
+                    alert('Login successful!');
                 } else {
                     alert(data.error || 'Login failed');
                 }
@@ -617,13 +413,13 @@
             }
         }
 
-        async function handleSignup(e) {
-            e.preventDefault();
+        async function handleSignup(event) {
+            event.preventDefault();
+            console.log('Handling signup...');
+            
             const name = document.getElementById('signupName').value;
             const email = document.getElementById('signupEmail').value;
             const password = document.getElementById('signupPassword').value;
-
-            console.log('Attempting signup with:', { name, email, password: '***' });
 
             try {
                 const response = await fetch(`${API_BASE}/auth/register`, {
@@ -633,12 +429,12 @@
                 });
 
                 const data = await response.json();
-                console.log('Signup response:', response.status, data);
-                
+                console.log('Signup response:', data);
+
                 if (response.ok) {
-                    alert('Registration successful! Please check your email to verify your account.');
-                    hideSignupModal();
-                    showLoginModal();
+                    alert('Registration successful! You can now login.');
+                    hideSignup();
+                    showLogin();
                 } else {
                     alert(data.error || 'Registration failed');
                 }
@@ -649,6 +445,8 @@
         }
 
         async function checkAuthStatus() {
+            if (!authToken) return;
+
             try {
                 const response = await fetch(`${API_BASE}/auth/profile`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
@@ -658,9 +456,8 @@
                     const userData = await response.json();
                     currentUser = userData;
                     updateNavigation();
-                    loadDashboardData();
+                    console.log('User authenticated:', currentUser);
                 } else {
-                    // Token is invalid
                     logout();
                 }
             } catch (error) {
@@ -670,105 +467,34 @@
         }
 
         function logout() {
+            console.log('Logging out...');
             authToken = null;
             currentUser = null;
             localStorage.removeItem('authToken');
             updateNavigation();
-            showLandingPage();
+            showLanding();
         }
 
-        // UI functions
-        function showLandingPage() {
-            console.log('Showing landing page');
-            document.getElementById('landingPage').classList.remove('hidden');
-            document.getElementById('dashboardPage').classList.add('hidden');
+        function connectGitHub() {
+            console.log('Connecting to GitHub...');
+            window.location.href = `${API_BASE}/auth/github`;
         }
 
-        function showDashboard() {
-            console.log('Showing dashboard');
-            document.getElementById('landingPage').classList.add('hidden');
-            document.getElementById('dashboardPage').classList.remove('hidden');
-            loadDashboardData();
-        }
-
-        function showLoginModal() {
-            console.log('Showing login modal');
-            const modal = document.getElementById('loginModal');
-            if (modal) {
-                modal.classList.remove('hidden');
-                console.log('Login modal shown');
-            } else {
-                console.error('Login modal not found!');
-            }
-        }
-
-        function hideLoginModal() {
-            console.log('Hiding login modal');
-            const modal = document.getElementById('loginModal');
-            if (modal) {
-                modal.classList.add('hidden');
-            }
-        }
-
-        function showSignupModal() {
-            console.log('Showing signup modal');
-            const modal = document.getElementById('signupModal');
-            if (modal) {
-                modal.classList.remove('hidden');
-                console.log('Signup modal shown');
-            } else {
-                console.error('Signup modal not found!');
-            }
-        }
-
-        function hideSignupModal() {
-            console.log('Hiding signup modal');
-            const modal = document.getElementById('signupModal');
-            if (modal) {
-                modal.classList.add('hidden');
-            }
-        }
-
-        function toggleUserMenu() {
-            const dropdown = document.getElementById('userDropdown');
-            if (dropdown) {
-                dropdown.classList.toggle('hidden');
-            }
-        }
-
-        function updateNavigation() {
-            const loginBtn = document.getElementById('loginBtn');
-            const signupBtn = document.getElementById('signupBtn');
-            const userMenu = document.getElementById('userMenu');
-
-            if (currentUser) {
-                if (loginBtn) loginBtn.classList.add('hidden');
-                if (signupBtn) signupBtn.classList.add('hidden');
-                if (userMenu) userMenu.classList.remove('hidden');
-            } else {
-                if (loginBtn) loginBtn.classList.remove('hidden');
-                if (signupBtn) signupBtn.classList.remove('hidden');
-                if (userMenu) userMenu.classList.add('hidden');
-            }
-        }
-
-        // Dashboard functions
         async function loadDashboardData() {
             if (!authToken) return;
 
             try {
-                // Load projects
-                const projectsResponse = await fetch(`${API_BASE}/projects`, {
+                const response = await fetch(`${API_BASE}/projects`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
 
-                if (projectsResponse.ok) {
-                    const projectsData = await projectsResponse.json();
-                    updateDashboardStats(projectsData);
-                    renderProjects(projectsData.projects || []);
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Dashboard data:', data);
+                    updateDashboardStats(data);
                 }
             } catch (error) {
-                console.error('Error loading dashboard data:', error);
+                console.error('Error loading dashboard:', error);
             }
         }
 
@@ -779,347 +505,17 @@
             document.getElementById('viewCount').textContent = data.totalViews || 0;
         }
 
-        function renderProjects(projects) {
-            const projectsList = document.getElementById('projectsList');
-            
-            if (projects.length === 0) {
-                projectsList.innerHTML = `
-                    <li class="px-4 py-8 text-center text-gray-500">
-                        <i class="fas fa-rocket text-6xl mb-4 text-gray-300"></i>
-                        <p class="text-xl font-medium mb-2">Ready to deploy your first site?</p>
-                        <p class="text-gray-400 mb-6">Connect your Git repository and go live in seconds!</p>
-                        <button id="createFirstProjectBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-md font-medium">
-                            <i class="fas fa-plus mr-2"></i>Create Your First Project
-                        </button>
-                    </li>
-                `;
-                // Re-attach event listener
-                document.getElementById('createFirstProjectBtn').addEventListener('click', showCreateProjectModal);
-                return;
-            }
-
-            projectsList.innerHTML = projects.map(project => `
-                <li class="px-4 py-4">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center">
-                            <div class="flex-shrink-0 h-12 w-12">
-                                <div class="h-12 w-12 rounded-full bg-indigo-500 flex items-center justify-center">
-                                    <i class="fas fa-globe text-white text-lg"></i>
-                                </div>
-                            </div>
-                            <div class="ml-4">
-                                <div class="text-lg font-medium text-gray-900">${project.name}</div>
-                                <div class="text-sm text-gray-500">${project.repository_url}</div>
-                                <div class="text-xs text-gray-400">Branch: ${project.branch || 'main'}</div>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-4">
-                            <div class="text-right">
-                                <div class="text-sm font-medium text-gray-900">
-                                    ${project.url ? `<a href="${project.url}" target="_blank" class="text-indigo-600 hover:text-indigo-800">${project.url}</a>` : 'Deploying...'}
-                                </div>
-                                <div class="text-xs text-gray-500">
-                                    Last deployed: ${project.updated_at ? new Date(project.updated_at).toLocaleDateString() : 'Never'}
-                                </div>
-                            </div>
-                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                project.status === 'active' ? 'bg-green-100 text-green-800' : 
-                                project.status === 'building' ? 'bg-yellow-100 text-yellow-800' :
-                                project.status === 'error' ? 'bg-red-100 text-red-800' :
-                                'bg-gray-100 text-gray-800'
-                            }">
-                                ${project.status || 'pending'}
-                            </span>
-                            <div class="flex space-x-2">
-                                <button onclick="deployProject('${project.id}')" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
-                                    <i class="fas fa-rocket mr-1"></i>Deploy
-                                </button>
-                                <button onclick="viewProject('${project.id}')" class="text-gray-600 hover:text-gray-900 text-sm font-medium">
-                                    <i class="fas fa-eye mr-1"></i>View
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </li>
-            `).join('');
-        }
-
-        // Project Creation Modal Functions
-        let currentStep = 1;
-        let selectedRepository = null;
-        let userRepositories = [];
-
-        function showCreateProjectModal() {
-            document.getElementById('createProjectModal').classList.remove('hidden');
-            currentStep = 1;
-            selectedRepository = null;
-            checkGitHubConnection();
-            showStep(1);
-        }
-
-        function hideCreateProjectModal() {
-            document.getElementById('createProjectModal').classList.add('hidden');
-            resetCreateProjectForm();
-        }
-
-        function resetCreateProjectForm() {
-            currentStep = 1;
-            selectedRepository = null;
-            userRepositories = [];
-            document.getElementById('selectedRepo').value = '';
-            document.getElementById('repoBranch').value = 'main';
-            document.getElementById('projectName').value = '';
-            document.getElementById('buildCommand').value = '';
-            document.getElementById('publishDir').value = '';
-        }
-
-        async function connectGitHub() {
-            console.log('Connecting to GitHub...');
-            window.location.href = `${API_BASE}/auth/github`;
-        }
-
-        async function checkGitHubConnection() {
-            if (!authToken) return;
-
-            try {
-                const response = await fetch(`${API_BASE}/auth/github/repos`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-
-                if (response.ok) {
-                    document.getElementById('githubNotConnected').classList.add('hidden');
-                    document.getElementById('githubConnected').classList.remove('hidden');
-                } else {
-                    document.getElementById('githubNotConnected').classList.remove('hidden');
-                    document.getElementById('githubConnected').classList.add('hidden');
-                }
-            } catch (error) {
-                console.error('Error checking GitHub connection:', error);
-                document.getElementById('githubNotConnected').classList.remove('hidden');
-                document.getElementById('githubConnected').classList.add('hidden');
-            }
-        }
-
-        async function loadGitHubRepositories() {
-            if (!authToken) return;
-
-            document.getElementById('repoLoading').classList.remove('hidden');
-            document.getElementById('repoList').classList.add('hidden');
-            document.getElementById('repoError').classList.add('hidden');
-
-            try {
-                const response = await fetch(`${API_BASE}/auth/github/repos`, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    userRepositories = data.repositories;
-                    renderRepositories(userRepositories);
-                    document.getElementById('repoLoading').classList.add('hidden');
-                    document.getElementById('repoList').classList.remove('hidden');
-                } else {
-                    throw new Error('Failed to load repositories');
-                }
-            } catch (error) {
-                console.error('Error loading repositories:', error);
-                document.getElementById('repoLoading').classList.add('hidden');
-                document.getElementById('repoError').classList.remove('hidden');
-            }
-        }
-
-        function renderRepositories(repositories) {
-            const repoList = document.getElementById('repoList');
-            
-            if (repositories.length === 0) {
-                repoList.innerHTML = `
-                    <div class="p-4 text-center text-gray-500">
-                        <p>No repositories found</p>
-                    </div>
-                `;
-                return;
-            }
-
-            repoList.innerHTML = repositories.map(repo => `
-                <div class="repo-item p-3 border-b border-gray-200 hover:bg-gray-50 cursor-pointer" data-repo='${JSON.stringify(repo)}'>
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <div class="font-medium text-gray-900">${repo.name}</div>
-                            <div class="text-sm text-gray-500">${repo.description || 'No description'}</div>
-                            <div class="text-xs text-gray-400 mt-1">
-                                ${repo.language ? `<span class="inline-block mr-3">${repo.language}</span>` : ''}
-                                <span>${repo.private ? 'Private' : 'Public'}</span>
-                                <span class="ml-3">Updated: ${new Date(repo.updated_at).toLocaleDateString()}</span>
-                            </div>
-                        </div>
-                        <div class="ml-4">
-                            <i class="fas fa-chevron-right text-gray-400"></i>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-
-            // Add click handlers
-            document.querySelectorAll('.repo-item').forEach(item => {
-                item.addEventListener('click', function() {
-                    const repo = JSON.parse(this.dataset.repo);
-                    selectRepository(repo);
-                });
-            });
-        }
-
-        function selectRepository(repo) {
-            selectedRepository = repo;
-            document.getElementById('selectedRepo').value = repo.full_name;
-            document.getElementById('repoBranch').value = repo.default_branch || 'main';
-            
-            // Auto-fill project name
-            const projectNameField = document.getElementById('projectName');
-            if (!projectNameField.value) {
-                projectNameField.value = repo.name;
-            }
-
-            // Highlight selected repo
-            document.querySelectorAll('.repo-item').forEach(item => {
-                item.classList.remove('bg-indigo-50', 'border-indigo-200');
-            });
-            
-            const selectedItem = document.querySelector(`[data-repo*='"id":${repo.id}']`);
-            if (selectedItem) {
-                selectedItem.classList.add('bg-indigo-50', 'border-indigo-200');
-            }
-
-            // Show next button
-            document.getElementById('nextStepBtn').classList.remove('hidden');
-        }
-
-        function showStep(step) {
-            // Hide all steps
-            document.querySelectorAll('.step').forEach(s => s.classList.add('hidden'));
-            
-            // Show current step
-            document.getElementById(`step${step}`).classList.remove('hidden');
-            
-            // Update navigation buttons
-            const prevBtn = document.getElementById('prevStepBtn');
-            const nextBtn = document.getElementById('nextStepBtn');
-            const submitBtn = document.getElementById('createProjectSubmitBtn');
-            
-            if (step === 1) {
-                prevBtn.classList.add('hidden');
-                nextBtn.classList.add('hidden');
-                submitBtn.classList.add('hidden');
-            } else if (step === 2) {
-                prevBtn.classList.remove('hidden');
-                nextBtn.classList.add('hidden');
-                submitBtn.classList.add('hidden');
-                loadGitHubRepositories();
-            } else if (step === 3) {
-                prevBtn.classList.remove('hidden');
-                nextBtn.classList.add('hidden');
-                submitBtn.classList.remove('hidden');
-            }
-        }
-
-        function nextStep() {
-            if (currentStep === 2 && !selectedRepository) {
-                alert('Please select a repository');
-                return;
-            }
-            
-            currentStep++;
-            showStep(currentStep);
-        }
-
-        function prevStep() {
-            currentStep--;
-            showStep(currentStep);
-        }
-
-        async function handleCreateProject() {
-            if (!selectedRepository) {
-                alert('Please select a repository');
-                return;
-            }
-
-            const projectData = {
-                name: document.getElementById('projectName').value || selectedRepository.name,
-                repository_url: selectedRepository.clone_url,
-                branch: document.getElementById('repoBranch').value || selectedRepository.default_branch,
-                build_settings: {
-                    command: document.getElementById('buildCommand').value || null,
-                    directory: document.getElementById('publishDir').value || null
-                },
-                git_provider: 'github'
-            };
-
-            try {
-                console.log('Creating project:', projectData);
-                
-                const response = await fetch(`${API_BASE}/projects`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify(projectData)
-                });
-
-                const data = await response.json();
-                console.log('Project creation response:', response.status, data);
-
-                if (response.ok) {
-                    alert('🎉 Project created successfully! Your site is being deployed...');
-                    hideCreateProjectModal();
-                    loadDashboardData(); // Refresh the dashboard
-                } else {
-                    alert(data.error || 'Failed to create project');
-                }
-            } catch (error) {
-                console.error('Project creation error:', error);
-                alert('Failed to create project. Please try again.');
-            }
-        }
-
-        // Project Actions
-        async function deployProject(projectId) {
-            try {
-                const response = await fetch(`${API_BASE}/projects/${projectId}/deploy`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-
-                if (response.ok) {
-                    alert('🚀 Deployment started! Check back in a few minutes.');
-                    loadDashboardData();
-                } else {
-                    const data = await response.json();
-                    alert(data.error || 'Failed to start deployment');
-                }
-            } catch (error) {
-                console.error('Deploy error:', error);
-                alert('Failed to start deployment');
-            }
-        }
-
-        function viewProject(projectId) {
-            // This would open a detailed project view
-            console.log('View project:', projectId);
-            alert('Project details view coming soon!');
-        }
-
         // Close modals when clicking outside
-        window.addEventListener('click', function(e) {
-            const loginModal = document.getElementById('loginModal');
-            const signupModal = document.getElementById('signupModal');
-            
-            if (e.target === loginModal) {
-                hideLoginModal();
-            }
-            if (e.target === signupModal) {
-                hideSignupModal();
-            }
-        });
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.classList.remove('show');
+                }
+            });
+        }
+
+        console.log('HostingKE JavaScript loaded successfully!');
     </script>
 </body>
 </html>
