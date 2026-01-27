@@ -432,11 +432,35 @@ router.get('/github/callback', async (req, res) => {
     };
     
     if (!existingUser) {
-      console.log('Creating new user...');
-      // Create new user
+      console.log('Creating new user through Supabase Auth...');
+      
+      // First, create user in Supabase Auth
+      const tempPassword = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      
+      const { data: authUser, error: authError } = await SupabaseService.getAdminClient().auth.admin.createUser({
+        email: primaryEmail,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: {
+          name: githubUser.name || githubUser.login,
+          avatar_url: githubUser.avatar_url,
+          github_id: githubUser.id,
+          github_username: githubUser.login
+        }
+      });
+      
+      if (authError) {
+        console.error('Error creating auth user:', authError);
+        return res.redirect(`${process.env.BASE_URL}?error=create_user_error&message=${encodeURIComponent(authError.message)}`);
+      }
+      
+      console.log('Auth user created:', authUser.user.id);
+      
+      // Now create the user profile
       const { data: newUser, error: createError } = await SupabaseService.getAdminClient()
         .from('users')
         .insert({
+          id: authUser.user.id, // Use the auth user ID
           email: primaryEmail,
           name: githubUser.name || githubUser.login,
           avatar: githubUser.avatar_url,
@@ -446,12 +470,12 @@ router.get('/github/callback', async (req, res) => {
         .single();
       
       if (createError) {
-        console.error('Error creating user:', createError);
-        return res.redirect(`${process.env.BASE_URL}?error=create_user_error&message=Failed to create user`);
+        console.error('Error creating user profile:', createError);
+        return res.redirect(`${process.env.BASE_URL}?error=create_user_error&message=${encodeURIComponent(createError.message)}`);
       }
       
       existingUser = newUser;
-      console.log('New user created:', existingUser.id);
+      console.log('New user profile created:', existingUser.id);
     } else {
       console.log('Updating existing user with GitHub info...');
       // Update existing user with GitHub info
@@ -483,6 +507,7 @@ router.get('/github/callback', async (req, res) => {
     const sessionToken = Buffer.from(JSON.stringify({
       userId: existingUser.id,
       email: existingUser.email,
+      githubConnected: true,
       exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
     })).toString('base64');
     
