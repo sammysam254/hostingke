@@ -41,8 +41,20 @@ class HostingPlatform {
   }
 
   setupMiddleware() {
-    // Security middleware
-    this.app.use(helmet());
+    // Security middleware with relaxed CSP for inline scripts
+    this.app.use(helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+          scriptSrcAttr: ["'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdnjs.cloudflare.com"],
+          fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
+          imgSrc: ["'self'", "data:", "https:"],
+          connectSrc: ["'self'"],
+        },
+      },
+    }));
     this.app.use(cors());
     this.app.use(compression());
     
