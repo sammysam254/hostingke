@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('rate-limiter-flexible');
 const path = require('path');
+const session = require('express-session');
 
 // Import route modules
 const authRoutes = require('./routes/auth');
@@ -44,6 +45,14 @@ class HostingPlatform {
     this.app.use(helmet());
     this.app.use(cors());
     this.app.use(compression());
+    
+    // Session middleware
+    this.app.use(session({
+      secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+      resave: false,
+      saveUninitialized: false,
+      cookie: { secure: process.env.NODE_ENV === 'production' }
+    }));
     
     // Rate limiting
     const rateLimiter = new rateLimit.RateLimiterMemory({

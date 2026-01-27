@@ -232,23 +232,22 @@
                     
                     <!-- Step 1: Git Provider Selection -->
                     <div id="step1" class="step">
-                        <h4 class="text-lg font-medium mb-4">Step 1: Choose Git Provider</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                            <button class="git-provider-btn p-4 border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-colors" data-provider="github">
-                                <i class="fab fa-github text-3xl mb-2"></i>
-                                <div class="font-medium">GitHub</div>
-                                <div class="text-sm text-gray-500">Most popular</div>
-                            </button>
-                            <button class="git-provider-btn p-4 border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-colors" data-provider="gitlab">
-                                <i class="fab fa-gitlab text-3xl mb-2 text-orange-500"></i>
-                                <div class="font-medium">GitLab</div>
-                                <div class="text-sm text-gray-500">Self-hosted option</div>
-                            </button>
-                            <button class="git-provider-btn p-4 border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-colors" data-provider="bitbucket">
-                                <i class="fab fa-bitbucket text-3xl mb-2 text-blue-500"></i>
-                                <div class="font-medium">Bitbucket</div>
-                                <div class="text-sm text-gray-500">Atlassian</div>
-                            </button>
+                        <h4 class="text-lg font-medium mb-4">Step 1: Connect Your GitHub</h4>
+                        <div class="text-center">
+                            <div id="githubNotConnected" class="mb-6">
+                                <i class="fab fa-github text-6xl text-gray-400 mb-4"></i>
+                                <p class="text-gray-600 mb-4">Connect your GitHub account to access your repositories</p>
+                                <button id="connectGitHubBtn" class="bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 rounded-md font-medium">
+                                    <i class="fab fa-github mr-2"></i>Connect GitHub
+                                </button>
+                            </div>
+                            <div id="githubConnected" class="hidden mb-6">
+                                <i class="fab fa-github text-6xl text-green-600 mb-4"></i>
+                                <p class="text-green-600 mb-4">✅ GitHub Connected Successfully!</p>
+                                <button id="nextStepBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-md font-medium">
+                                    Choose Repository <i class="fas fa-arrow-right ml-2"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -256,9 +255,21 @@
                     <div id="step2" class="step hidden">
                         <h4 class="text-lg font-medium mb-4">Step 2: Select Repository</h4>
                         <div class="mb-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Repository URL</label>
-                            <input type="url" id="repoUrl" placeholder="https://github.com/username/repository" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <p class="text-sm text-gray-500 mt-1">Enter the full URL of your Git repository</p>
+                            <div id="repoLoading" class="text-center py-8">
+                                <i class="fas fa-spinner fa-spin text-2xl text-indigo-600 mb-2"></i>
+                                <p>Loading your repositories...</p>
+                            </div>
+                            <div id="repoList" class="hidden max-h-64 overflow-y-auto border border-gray-200 rounded-md">
+                                <!-- Repositories will be loaded here -->
+                            </div>
+                            <div id="repoError" class="hidden text-center py-8 text-red-600">
+                                <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                                <p>Failed to load repositories. Please try again.</p>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Selected Repository</label>
+                            <input type="text" id="selectedRepo" readonly class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50">
                         </div>
                         <div class="mb-4">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Branch</label>
@@ -374,8 +385,23 @@
 
         // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing app...');
             initializeApp();
             setupEventListeners();
+            
+            // Check for GitHub OAuth callback
+            const urlParams = new URLSearchParams(window.location.search);
+            const token = urlParams.get('token');
+            const githubConnected = urlParams.get('github');
+            
+            if (token && githubConnected) {
+                console.log('GitHub OAuth callback detected');
+                authToken = token;
+                localStorage.setItem('authToken', authToken);
+                checkAuthStatus();
+                // Clean URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
             
             // Check if user is logged in
             if (authToken) {
@@ -389,36 +415,64 @@
         }
 
         function setupEventListeners() {
+            console.log('Setting up event listeners...');
+            
             // Navigation
-            document.getElementById('loginBtn').addEventListener('click', showLoginModal);
-            document.getElementById('signupBtn').addEventListener('click', showSignupModal);
-            document.getElementById('getStartedBtn').addEventListener('click', showSignupModal);
-            document.getElementById('logoutBtn').addEventListener('click', logout);
-            document.getElementById('dashboardLink').addEventListener('click', showDashboard);
+            const loginBtn = document.getElementById('loginBtn');
+            const signupBtn = document.getElementById('signupBtn');
+            const getStartedBtn = document.getElementById('getStartedBtn');
+            
+            if (loginBtn) {
+                loginBtn.addEventListener('click', function(e) {
+                    console.log('Login button clicked');
+                    e.preventDefault();
+                    showLoginModal();
+                });
+            }
+            
+            if (signupBtn) {
+                signupBtn.addEventListener('click', function(e) {
+                    console.log('Signup button clicked');
+                    e.preventDefault();
+                    showSignupModal();
+                });
+            }
+            
+            if (getStartedBtn) {
+                getStartedBtn.addEventListener('click', function(e) {
+                    console.log('Get started button clicked');
+                    e.preventDefault();
+                    showSignupModal();
+                });
+            }
+
+            document.getElementById('logoutBtn')?.addEventListener('click', logout);
+            document.getElementById('dashboardLink')?.addEventListener('click', function(e) {
+                e.preventDefault();
+                showDashboard();
+            });
 
             // Modals
-            document.getElementById('closeLoginModal').addEventListener('click', hideLoginModal);
-            document.getElementById('closeSignupModal').addEventListener('click', hideSignupModal);
-            document.getElementById('closeCreateProjectModal').addEventListener('click', hideCreateProjectModal);
+            document.getElementById('closeLoginModal')?.addEventListener('click', hideLoginModal);
+            document.getElementById('closeSignupModal')?.addEventListener('click', hideSignupModal);
+            document.getElementById('closeCreateProjectModal')?.addEventListener('click', hideCreateProjectModal);
 
             // Forms
-            document.getElementById('loginForm').addEventListener('submit', handleLogin);
-            document.getElementById('signupForm').addEventListener('submit', handleSignup);
+            document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
+            document.getElementById('signupForm')?.addEventListener('submit', handleSignup);
 
             // User menu
-            document.getElementById('userMenuBtn').addEventListener('click', toggleUserMenu);
+            document.getElementById('userMenuBtn')?.addEventListener('click', toggleUserMenu);
 
             // Project creation
-            document.getElementById('newProjectBtn').addEventListener('click', showCreateProjectModal);
-            document.getElementById('createFirstProjectBtn').addEventListener('click', showCreateProjectModal);
-            document.getElementById('nextStepBtn').addEventListener('click', nextStep);
-            document.getElementById('prevStepBtn').addEventListener('click', prevStep);
-            document.getElementById('createProjectSubmitBtn').addEventListener('click', handleCreateProject);
+            document.getElementById('newProjectBtn')?.addEventListener('click', showCreateProjectModal);
+            document.getElementById('createFirstProjectBtn')?.addEventListener('click', showCreateProjectModal);
+            document.getElementById('nextStepBtn')?.addEventListener('click', nextStep);
+            document.getElementById('prevStepBtn')?.addEventListener('click', prevStep);
+            document.getElementById('createProjectSubmitBtn')?.addEventListener('click', handleCreateProject);
 
-            // Git provider selection
-            document.querySelectorAll('.git-provider-btn').forEach(btn => {
-                btn.addEventListener('click', selectGitProvider);
-            });
+            // GitHub connection
+            document.getElementById('connectGitHubBtn')?.addEventListener('click', connectGitHub);
         }
 
         // Authentication functions
@@ -655,12 +709,14 @@
 
         // Project Creation Modal Functions
         let currentStep = 1;
-        let selectedProvider = null;
+        let selectedRepository = null;
+        let userRepositories = [];
 
         function showCreateProjectModal() {
             document.getElementById('createProjectModal').classList.remove('hidden');
             currentStep = 1;
-            selectedProvider = null;
+            selectedRepository = null;
+            checkGitHubConnection();
             showStep(1);
         }
 
@@ -671,33 +727,131 @@
 
         function resetCreateProjectForm() {
             currentStep = 1;
-            selectedProvider = null;
-            document.getElementById('repoUrl').value = '';
+            selectedRepository = null;
+            userRepositories = [];
+            document.getElementById('selectedRepo').value = '';
             document.getElementById('repoBranch').value = 'main';
             document.getElementById('projectName').value = '';
             document.getElementById('buildCommand').value = '';
             document.getElementById('publishDir').value = '';
+        }
+
+        async function connectGitHub() {
+            console.log('Connecting to GitHub...');
+            window.location.href = `${API_BASE}/auth/github`;
+        }
+
+        async function checkGitHubConnection() {
+            if (!authToken) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/github/repos`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    document.getElementById('githubNotConnected').classList.add('hidden');
+                    document.getElementById('githubConnected').classList.remove('hidden');
+                } else {
+                    document.getElementById('githubNotConnected').classList.remove('hidden');
+                    document.getElementById('githubConnected').classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Error checking GitHub connection:', error);
+                document.getElementById('githubNotConnected').classList.remove('hidden');
+                document.getElementById('githubConnected').classList.add('hidden');
+            }
+        }
+
+        async function loadGitHubRepositories() {
+            if (!authToken) return;
+
+            document.getElementById('repoLoading').classList.remove('hidden');
+            document.getElementById('repoList').classList.add('hidden');
+            document.getElementById('repoError').classList.add('hidden');
+
+            try {
+                const response = await fetch(`${API_BASE}/auth/github/repos`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    userRepositories = data.repositories;
+                    renderRepositories(userRepositories);
+                    document.getElementById('repoLoading').classList.add('hidden');
+                    document.getElementById('repoList').classList.remove('hidden');
+                } else {
+                    throw new Error('Failed to load repositories');
+                }
+            } catch (error) {
+                console.error('Error loading repositories:', error);
+                document.getElementById('repoLoading').classList.add('hidden');
+                document.getElementById('repoError').classList.remove('hidden');
+            }
+        }
+
+        function renderRepositories(repositories) {
+            const repoList = document.getElementById('repoList');
             
-            // Reset provider selection
-            document.querySelectorAll('.git-provider-btn').forEach(btn => {
-                btn.classList.remove('border-indigo-500', 'bg-indigo-50');
-                btn.classList.add('border-gray-200');
+            if (repositories.length === 0) {
+                repoList.innerHTML = `
+                    <div class="p-4 text-center text-gray-500">
+                        <p>No repositories found</p>
+                    </div>
+                `;
+                return;
+            }
+
+            repoList.innerHTML = repositories.map(repo => `
+                <div class="repo-item p-3 border-b border-gray-200 hover:bg-gray-50 cursor-pointer" data-repo='${JSON.stringify(repo)}'>
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="font-medium text-gray-900">${repo.name}</div>
+                            <div class="text-sm text-gray-500">${repo.description || 'No description'}</div>
+                            <div class="text-xs text-gray-400 mt-1">
+                                ${repo.language ? `<span class="inline-block mr-3">${repo.language}</span>` : ''}
+                                <span>${repo.private ? 'Private' : 'Public'}</span>
+                                <span class="ml-3">Updated: ${new Date(repo.updated_at).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <i class="fas fa-chevron-right text-gray-400"></i>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Add click handlers
+            document.querySelectorAll('.repo-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const repo = JSON.parse(this.dataset.repo);
+                    selectRepository(repo);
+                });
             });
         }
 
-        function selectGitProvider(e) {
-            const btn = e.currentTarget;
-            selectedProvider = btn.dataset.provider;
+        function selectRepository(repo) {
+            selectedRepository = repo;
+            document.getElementById('selectedRepo').value = repo.full_name;
+            document.getElementById('repoBranch').value = repo.default_branch || 'main';
             
-            // Update UI
-            document.querySelectorAll('.git-provider-btn').forEach(b => {
-                b.classList.remove('border-indigo-500', 'bg-indigo-50');
-                b.classList.add('border-gray-200');
+            // Auto-fill project name
+            const projectNameField = document.getElementById('projectName');
+            if (!projectNameField.value) {
+                projectNameField.value = repo.name;
+            }
+
+            // Highlight selected repo
+            document.querySelectorAll('.repo-item').forEach(item => {
+                item.classList.remove('bg-indigo-50', 'border-indigo-200');
             });
             
-            btn.classList.remove('border-gray-200');
-            btn.classList.add('border-indigo-500', 'bg-indigo-50');
-            
+            const selectedItem = document.querySelector(`[data-repo*='"id":${repo.id}']`);
+            if (selectedItem) {
+                selectedItem.classList.add('bg-indigo-50', 'border-indigo-200');
+            }
+
             // Show next button
             document.getElementById('nextStepBtn').classList.remove('hidden');
         }
@@ -720,8 +874,9 @@
                 submitBtn.classList.add('hidden');
             } else if (step === 2) {
                 prevBtn.classList.remove('hidden');
-                nextBtn.classList.remove('hidden');
+                nextBtn.classList.add('hidden');
                 submitBtn.classList.add('hidden');
+                loadGitHubRepositories();
             } else if (step === 3) {
                 prevBtn.classList.remove('hidden');
                 nextBtn.classList.add('hidden');
@@ -730,24 +885,9 @@
         }
 
         function nextStep() {
-            if (currentStep === 1 && !selectedProvider) {
-                alert('Please select a Git provider');
+            if (currentStep === 2 && !selectedRepository) {
+                alert('Please select a repository');
                 return;
-            }
-            
-            if (currentStep === 2) {
-                const repoUrl = document.getElementById('repoUrl').value;
-                if (!repoUrl) {
-                    alert('Please enter a repository URL');
-                    return;
-                }
-                
-                // Auto-fill project name from repo URL
-                const projectNameField = document.getElementById('projectName');
-                if (!projectNameField.value) {
-                    const repoName = repoUrl.split('/').pop().replace('.git', '');
-                    projectNameField.value = repoName;
-                }
             }
             
             currentStep++;
@@ -760,21 +900,21 @@
         }
 
         async function handleCreateProject() {
+            if (!selectedRepository) {
+                alert('Please select a repository');
+                return;
+            }
+
             const projectData = {
-                name: document.getElementById('projectName').value,
-                repository_url: document.getElementById('repoUrl').value,
-                branch: document.getElementById('repoBranch').value || 'main',
+                name: document.getElementById('projectName').value || selectedRepository.name,
+                repository_url: selectedRepository.clone_url,
+                branch: document.getElementById('repoBranch').value || selectedRepository.default_branch,
                 build_settings: {
                     command: document.getElementById('buildCommand').value || null,
                     directory: document.getElementById('publishDir').value || null
                 },
-                git_provider: selectedProvider
+                git_provider: 'github'
             };
-
-            if (!projectData.name || !projectData.repository_url) {
-                alert('Please fill in all required fields');
-                return;
-            }
 
             try {
                 console.log('Creating project:', projectData);

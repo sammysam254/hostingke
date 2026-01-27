@@ -289,4 +289,200 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
+// GitHub OAuth - Start authentication
+router.get('/github', (req, res) => {
+  const clientId = process.env.GITHUB_CLIENT_ID;
+  const redirectUri = `${process.env.BASE_URL}/api/auth/github/callback`;
+  const scope = 'repo,user:email';
+  const state = Math.random().toString(36).substring(7);
+  
+  // Store state in session (in production, use proper session storage)
+  req.session = req.session || {};
+  req.session.githubState = state;
+  
+  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}`;
+  
+  res.redirect(githubAuthUrl);
+});
+
+// GitHub OAuth - Handle callback
+router.get('/github/callback', async (req, res) => {
+  try {
+    const { code, state } = req.query;
+    
+    if (!code) {
+      return res.status(400).json({ error: 'Authorization code not provided' });
+    }
+    
+    // Exchange code for access token
+    const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: process.env.GITHUB_CLIENT_ID,
+        client_secret: process.env.GITHUB_CLIENT_SECRET,
+        code: code,
+      }),
+    });
+    
+    const tokenData = await tokenResponse.json();
+    
+    if (tokenData.error) {
+      return res.status(400).json({ error: tokenData.error_description });
+    }
+    
+    // Get user info from GitHub
+    const userResponse = await fetch('https://api.github.com/user', {
+      headers: {
+        'Authorization': `token ${tokenData.access_token}`,
+        'User-Agent': 'HostingKE-App',
+      },
+    });
+    
+    const githubUser = await userResponse.json();
+    
+    // Get user email
+    const emailResponse = await fetch('https://api.github.com/user/emails', {
+      headers: {
+        'Authorization': `token ${tokenData.access_token}`,
+        'User-Agent': 'HostingKE-App',
+      },
+    });
+    
+    const emails = await emailResponse.json();
+    const primaryEmail = emails.find(email => email.primary)?.email || githubUser.email;
+    
+    // Check if user exists in our system
+    let { data: existingUser, error: userError } = await SupabaseService.getAdminClient()
+      .from('users')
+      .select('*')
+      .eq('email', primaryEmail)
+      .single();
+    
+    if (userError && userError.code !== 'PGRST116') {
+      console.error('Error checking existing user:', userError);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (!existingUser) {
+      // Create new user
+      const { data: newUser, error: createError } = await SupabaseService.getAdminClient()
+        .from('users')
+        .insert({
+          email: primaryEmail,
+          name: githubUser.name || githubUser.login,
+          avatar: githubUser.avatar_url,
+          github_id: githubUser.id,
+          github_username: githubUser.login,
+          github_access_token: tokenData.access_token,
+        })
+        .select()
+        .single();
+      
+      if (createError) {
+        console.error('Error creating user:', createError);
+        return res.status(500).json({ error: 'Failed to create user' });
+      }
+      
+      existingUser = newUser;
+    } else {
+      // Update existing user with GitHub info
+      const { error: updateError } = await SupabaseService.getAdminClient()
+        .from('users')
+        .update({
+          github_id: githubUser.id,
+          github_username: githubUser.login,
+          github_access_token: tokenData.access_token,
+          avatar: githubUser.avatar_url,
+        })
+        .eq('id', existingUser.id);
+      
+      if (updateError) {
+        console.error('Error updating user:', updateError);
+      }
+    }
+    
+    // Create session token (simplified - in production use proper JWT)
+    const sessionToken = Buffer.from(JSON.stringify({
+      userId: existingUser.id,
+      email: existingUser.email,
+      exp: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+    })).toString('base64');
+    
+    // Redirect to frontend with token
+    res.redirect(`${process.env.BASE_URL}?token=${sessionToken}&github=connected`);
+    
+  } catch (error) {
+    console.error('GitHub OAuth error:', error);
+    res.status(500).json({ error: 'OAuth authentication failed' });
+  }
+});
+
+// Get user's GitHub repositories
+router.get('/github/repos', async (req, res) => {
+  try {
+    const accessToken = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!accessToken) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    // Get user from our database
+    const { data: authData, error: authError } = await SupabaseService.getUser(accessToken);
+
+    if (authError || !authData.user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    // Get user profile to get GitHub access token
+    const { data: userProfile, error: profileError } = await SupabaseService.getAdminClient()
+      .from('users')
+      .select('github_access_token, github_username')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (profileError || !userProfile.github_access_token) {
+      return res.status(400).json({ error: 'GitHub not connected' });
+    }
+
+    // Fetch repositories from GitHub
+    const reposResponse = await fetch('https://api.github.com/user/repos?sort=updated&per_page=100', {
+      headers: {
+        'Authorization': `token ${userProfile.github_access_token}`,
+        'User-Agent': 'HostingKE-App',
+      },
+    });
+
+    if (!reposResponse.ok) {
+      return res.status(400).json({ error: 'Failed to fetch repositories' });
+    }
+
+    const repos = await reposResponse.json();
+    
+    // Filter and format repositories
+    const formattedRepos = repos
+      .filter(repo => !repo.fork) // Exclude forks
+      .map(repo => ({
+        id: repo.id,
+        name: repo.name,
+        full_name: repo.full_name,
+        description: repo.description,
+        html_url: repo.html_url,
+        clone_url: repo.clone_url,
+        default_branch: repo.default_branch,
+        language: repo.language,
+        updated_at: repo.updated_at,
+        private: repo.private,
+      }));
+
+    res.json({ repositories: formattedRepos });
+  } catch (error) {
+    console.error('GitHub repos error:', error);
+    res.status(500).json({ error: 'Failed to fetch repositories' });
+  }
+});
+
 module.exports = router;
