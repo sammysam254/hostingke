@@ -1,0 +1,42 @@
+[build]
+  # Build command
+  command = "npm run build"
+  
+  # Directory to publish (for static sites)
+  # Since this is a Node.js API server, we don't need this
+  # publish = "dist"
+  
+  # Functions directory (for Netlify Functions)
+  functions = "netlify/functions"
+
+[build.environment]
+  # Node.js version
+  NODE_VERSION = "18"
+  
+  # NPM version
+  NPM_VERSION = "9"
+
+# Redirect all requests to the Express server
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/server/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/server"
+  status = 200
+
+# Headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Environment variables (these will be set in Netlify dashboard)
+# SUPABASE_URL = "your-supabase-url"
+# SUPABASE_ANON_KEY = "your-anon-key"
+# SUPABASE_SERVICE_ROLE_KEY = "your-service-role-key"

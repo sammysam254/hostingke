@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "build": "npm run build:client && npm run build:functions",
+    "build": "echo 'Build completed - this is a Node.js API server'",
     "build:client": "webpack --mode production",
     "build:functions": "node scripts/build-functions.js",
     "test": "jest",
@@ -20,7 +20,7 @@
     "helmet": "^7.1.0",
     "cors": "^2.8.5",
     "compression": "^1.7.4",
-    "rate-limiter-flexible": "^3.0.8",
+    "rate-limiter-flexible": "^2.4.2",
     "simple-git": "^3.20.0",
     "archiver": "^6.0.1",
     "unzipper": "^0.10.14",
@@ -30,7 +30,8 @@
     "acme-client": "^5.1.0",
     "cloudflare": "^3.1.0",
     "nodemailer": "^6.9.7",
-    "axios": "^1.6.2"
+    "axios": "^1.6.2",
+    "serverless-http": "^3.2.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",

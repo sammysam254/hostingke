@@ -1,9 +1,39 @@
 -- Seed data for development and testing
 
--- Insert sample users (these will be created through Supabase Auth in real usage)
--- This is just for reference - actual users are managed by Supabase Auth
+-- NOTE: This seed data is for reference only
+-- In a real Supabase setup, users are created through Supabase Auth
+-- You'll need to replace the user IDs with actual user IDs from your auth.users table
 
--- Sample projects
+-- To use this seed data:
+-- 1. Create a user through your application's registration
+-- 2. Find the user ID in the auth.users table
+-- 3. Replace the placeholder user ID below with the real one
+-- 4. Then run this seed data
+
+-- Example: SELECT id FROM auth.users LIMIT 1;
+-- Copy that ID and replace '00000000-0000-0000-0000-000000000001' below
+
+-- First, let's create a sample user profile (optional - users are created via Supabase Auth)
+-- This is just for the users table, not auth.users
+INSERT INTO public.users (
+  id,
+  email,
+  name,
+  plan,
+  bandwidth_used,
+  build_minutes_used,
+  sites_count
+) VALUES (
+  '00000000-0000-0000-0000-000000000001', -- Replace with real user ID from auth.users
+  'demo@example.com',
+  'Demo User',
+  'free',
+  0,
+  0,
+  0
+) ON CONFLICT (id) DO NOTHING; -- Ignore if user already exists
+
+-- Sample projects (only run after replacing user ID above)
 INSERT INTO public.projects (
   id,
   name,
@@ -17,25 +47,25 @@ INSERT INTO public.projects (
 (
   uuid_generate_v4(),
   'My Portfolio',
-  'my-portfolio',
-  '00000000-0000-0000-0000-000000000001', -- Replace with actual user ID
+  'my-portfolio-demo',
+  '00000000-0000-0000-0000-000000000001', -- Replace with real user ID
   '{"provider": "github", "url": "https://github.com/user/portfolio", "branch": "main"}',
   '{"command": "npm run build", "directory": "dist", "environment": {}}',
-  '[{"domain": "my-portfolio.yourplatform.com", "is_custom": false, "ssl_enabled": true, "verified": true}]',
+  '[{"domain": "my-portfolio-demo.yourplatform.com", "is_custom": false, "ssl_enabled": true, "verified": true}]',
   'active'
 ),
 (
   uuid_generate_v4(),
   'Company Website',
-  'company-website',
-  '00000000-0000-0000-0000-000000000001', -- Replace with actual user ID
+  'company-website-demo',
+  '00000000-0000-0000-0000-000000000001', -- Replace with real user ID
   '{"provider": "gitlab", "url": "https://gitlab.com/company/website", "branch": "main"}',
   '{"command": "npm run build", "directory": "build", "environment": {"NODE_ENV": "production"}}',
-  '[{"domain": "company-website.yourplatform.com", "is_custom": false, "ssl_enabled": true, "verified": true}, {"domain": "company.com", "is_custom": true, "ssl_enabled": true, "verified": true}]',
+  '[{"domain": "company-website-demo.yourplatform.com", "is_custom": false, "ssl_enabled": true, "verified": true}, {"domain": "demo-company.com", "is_custom": true, "ssl_enabled": true, "verified": true}]',
   'active'
 );
 
--- Sample deployments
+-- Sample deployments (only run after projects are created)
 INSERT INTO public.deployments (
   id,
   project_id,
@@ -51,7 +81,7 @@ INSERT INTO public.deployments (
 ) VALUES 
 (
   uuid_generate_v4(),
-  (SELECT id FROM public.projects WHERE slug = 'my-portfolio' LIMIT 1),
+  (SELECT id FROM public.projects WHERE slug = 'my-portfolio-demo' LIMIT 1),
   'abc123def456',
   'Update homepage design',
   'main',
@@ -59,12 +89,12 @@ INSERT INTO public.deployments (
   'production',
   45,
   2048576, -- 2MB
-  'https://my-portfolio.yourplatform.com',
+  'https://my-portfolio-demo.yourplatform.com',
   '{"command": "npm run build", "directory": "dist", "environment": {}}'
 ),
 (
   uuid_generate_v4(),
-  (SELECT id FROM public.projects WHERE slug = 'company-website' LIMIT 1),
+  (SELECT id FROM public.projects WHERE slug = 'company-website-demo' LIMIT 1),
   'def456ghi789',
   'Add contact form',
   'main',
@@ -72,11 +102,11 @@ INSERT INTO public.deployments (
   'production',
   67,
   5242880, -- 5MB
-  'https://company-website.yourplatform.com',
+  'https://company-website-demo.yourplatform.com',
   '{"command": "npm run build", "directory": "build", "environment": {"NODE_ENV": "production"}}'
 );
 
--- Sample analytics data
+-- Sample analytics data (only run after projects are created)
 INSERT INTO public.analytics (
   project_id,
   path,
@@ -91,7 +121,7 @@ INSERT INTO public.analytics (
   timestamp
 ) VALUES 
 (
-  (SELECT id FROM public.projects WHERE slug = 'my-portfolio' LIMIT 1),
+  (SELECT id FROM public.projects WHERE slug = 'my-portfolio-demo' LIMIT 1),
   '/',
   'GET',
   200,
@@ -104,7 +134,7 @@ INSERT INTO public.analytics (
   NOW() - INTERVAL '1 hour'
 ),
 (
-  (SELECT id FROM public.projects WHERE slug = 'my-portfolio' LIMIT 1),
+  (SELECT id FROM public.projects WHERE slug = 'my-portfolio-demo' LIMIT 1),
   '/about',
   'GET',
   200,
@@ -117,7 +147,7 @@ INSERT INTO public.analytics (
   NOW() - INTERVAL '2 hours'
 ),
 (
-  (SELECT id FROM public.projects WHERE slug = 'company-website' LIMIT 1),
+  (SELECT id FROM public.projects WHERE slug = 'company-website-demo' LIMIT 1),
   '/',
   'GET',
   200,
@@ -130,7 +160,7 @@ INSERT INTO public.analytics (
   NOW() - INTERVAL '30 minutes'
 );
 
--- Sample form submissions
+-- Sample form submissions (only run after projects are created)
 INSERT INTO public.form_submissions (
   project_id,
   form_name,
@@ -139,21 +169,21 @@ INSERT INTO public.form_submissions (
   user_agent
 ) VALUES 
 (
-  (SELECT id FROM public.projects WHERE slug = 'my-portfolio' LIMIT 1),
+  (SELECT id FROM public.projects WHERE slug = 'my-portfolio-demo' LIMIT 1),
   'contact',
   '{"name": "John Doe", "email": "john@example.com", "message": "Great portfolio!"}',
   '192.168.1.100',
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
 ),
 (
-  (SELECT id FROM public.projects WHERE slug = 'company-website' LIMIT 1),
+  (SELECT id FROM public.projects WHERE slug = 'company-website-demo' LIMIT 1),
   'newsletter',
   '{"email": "jane@example.com", "interests": ["web-development", "design"]}',
   '10.0.0.50',
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
 );
 
--- Sample function logs
+-- Sample function logs (only run after projects are created)
 INSERT INTO public.function_logs (
   project_id,
   function_name,
@@ -164,7 +194,7 @@ INSERT INTO public.function_logs (
   timestamp
 ) VALUES 
 (
-  (SELECT id FROM public.projects WHERE slug = 'company-website' LIMIT 1),
+  (SELECT id FROM public.projects WHERE slug = 'company-website-demo' LIMIT 1),
   'contact-form',
   'req-abc123',
   250,
@@ -173,7 +203,7 @@ INSERT INTO public.function_logs (
   NOW() - INTERVAL '1 hour'
 ),
 (
-  (SELECT id FROM public.projects WHERE slug = 'company-website' LIMIT 1),
+  (SELECT id FROM public.projects WHERE slug = 'company-website-demo' LIMIT 1),
   'newsletter-signup',
   'req-def456',
   180,
@@ -182,7 +212,7 @@ INSERT INTO public.function_logs (
   NOW() - INTERVAL '2 hours'
 );
 
--- Sample domains
+-- Sample domains (only run after projects are created)
 INSERT INTO public.domains (
   project_id,
   domain,
@@ -191,15 +221,15 @@ INSERT INTO public.domains (
   verified
 ) VALUES 
 (
-  (SELECT id FROM public.projects WHERE slug = 'company-website' LIMIT 1),
-  'company.com',
+  (SELECT id FROM public.projects WHERE slug = 'company-website-demo' LIMIT 1),
+  'demo-company.com',
   true,
   true,
   true
 ),
 (
-  (SELECT id FROM public.projects WHERE slug = 'company-website' LIMIT 1),
-  'www.company.com',
+  (SELECT id FROM public.projects WHERE slug = 'company-website-demo' LIMIT 1),
+  'www.demo-company.com',
   true,
   true,
   true

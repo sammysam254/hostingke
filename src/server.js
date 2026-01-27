@@ -136,8 +136,11 @@ class HostingPlatform {
   }
 }
 
-// Start the server
-const platform = new HostingPlatform();
-platform.start();
+// Start the server only if not in serverless environment
+if (require.main === module) {
+  const platform = new HostingPlatform();
+  platform.start();
+}
 
-module.exports = platform;
+// Export for serverless deployment
+module.exports = new HostingPlatform();
