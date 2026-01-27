@@ -92,7 +92,23 @@ class HostingPlatform {
     // Serve index.html for all non-API routes (SPA support)
     this.app.get('*', (req, res) => {
       if (!req.path.startsWith('/api')) {
-        res.sendFile(path.join(process.cwd(), 'public', 'index.html'));
+        const indexPath = path.join(process.cwd(), 'public', 'index.html');
+        console.log('Attempting to serve index.html from:', indexPath);
+        
+        // Check if file exists before sending
+        const fs = require('fs');
+        if (fs.existsSync(indexPath)) {
+          res.sendFile(indexPath);
+        } else {
+          console.error('index.html not found at:', indexPath);
+          console.log('Current working directory:', process.cwd());
+          console.log('Directory contents:', fs.readdirSync(process.cwd()));
+          res.status(404).json({ 
+            error: 'Frontend not found',
+            message: 'The frontend application is not available. Please check the deployment.',
+            path: indexPath
+          });
+        }
       }
     });
 
