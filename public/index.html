@@ -281,15 +281,51 @@
 
     <!-- Create Project Modal -->
     <div id="createProjectModal" class="modal fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
             <div class="mt-3">
                 <h3 class="text-xl font-medium text-gray-900 text-center mb-6">Create New Project</h3>
                 
-                <div class="mb-6">
-                    <button id="connectGitHubBtn" class="w-full bg-gray-900 hover:bg-gray-800 text-white px-6 py-4 rounded-md font-medium">
-                        <i class="fab fa-github mr-2 text-xl"></i>Connect GitHub & Deploy
-                    </button>
-                    <p class="text-sm text-gray-500 mt-2 text-center">Connect your GitHub account to access all your repositories</p>
+                <!-- GitHub Connection Status -->
+                <div id="githubConnectionStatus" class="mb-6 p-4 rounded-md bg-gray-50">
+                    <div id="githubNotConnected">
+                        <button id="connectGitHubBtn" class="w-full bg-gray-900 hover:bg-gray-800 text-white px-6 py-4 rounded-md font-medium">
+                            <i class="fab fa-github mr-2 text-xl"></i>Connect GitHub & Deploy
+                        </button>
+                        <p class="text-sm text-gray-500 mt-2 text-center">Connect your GitHub account to access all your repositories</p>
+                    </div>
+                    
+                    <div id="githubConnected" class="hidden">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center">
+                                <i class="fab fa-github text-2xl mr-2"></i>
+                                <span class="text-lg font-medium">GitHub Connected</span>
+                                <i class="fas fa-check-circle text-green-500 ml-2"></i>
+                            </div>
+                            <button id="refreshReposBtn" class="text-indigo-600 hover:text-indigo-800 text-sm">
+                                <i class="fas fa-sync-alt mr-1"></i>Refresh
+                            </button>
+                        </div>
+                        
+                        <!-- Repository Selection -->
+                        <div id="repositorySelection">
+                            <h4 class="text-md font-medium mb-3">Select Repository to Deploy:</h4>
+                            <div id="repositoryList" class="max-h-64 overflow-y-auto">
+                                <div id="loadingRepos" class="text-center py-4">
+                                    <i class="fas fa-spinner fa-spin text-2xl text-gray-400"></i>
+                                    <p class="text-gray-500 mt-2">Loading repositories...</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Selected Repository Info -->
+                        <div id="selectedRepoInfo" class="hidden mt-4 p-4 bg-indigo-50 rounded-md">
+                            <h5 class="font-medium text-indigo-900 mb-2">Selected Repository:</h5>
+                            <div id="selectedRepoDetails"></div>
+                            <button id="deploySelectedRepo" class="mt-3 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md">
+                                Deploy This Repository
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="text-center">
@@ -326,8 +362,10 @@
             if (urlParams.get('github') === 'connected' && urlParams.get('success') === 'true') {
                 const token = urlParams.get('token');
                 if (token) {
-                    // Store the session token
+                    // Store the session token and use it as auth token
                     localStorage.setItem('sessionToken', token);
+                    localStorage.setItem('authToken', token);
+                    authToken = token;
                     
                     // Show success message
                     alert('GitHub connected successfully! You can now access your repositories.');
@@ -335,8 +373,14 @@
                     // Clean up URL
                     window.history.replaceState({}, document.title, window.location.pathname);
                     
-                    // Show dashboard if user is authenticated
+                    // Check auth status and show dashboard
+                    checkAuthStatus();
                     showDashboard();
+                    
+                    // Show create project modal with GitHub connected
+                    setTimeout(() => {
+                        showCreateProjectWithGitHub();
+                    }, 1000);
                 }
             }
             
@@ -385,6 +429,12 @@
                 // Clean up URL
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
+        }
+
+        function showCreateProjectWithGitHub() {
+            console.log('Showing create project modal with GitHub connected');
+            showCreateProject();
+            loadGitHubRepositories();
         }
 
         // Setup all event listeners
@@ -510,6 +560,24 @@
                 });
             }
 
+            // Repository selection buttons
+            const refreshReposBtn = document.getElementById('refreshReposBtn');
+            const deploySelectedRepo = document.getElementById('deploySelectedRepo');
+
+            if (refreshReposBtn) {
+                refreshReposBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    loadGitHubRepositories();
+                });
+            }
+
+            if (deploySelectedRepo) {
+                deploySelectedRepo.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    deploySelectedRepository();
+                });
+            }
+
             console.log('All event listeners set up successfully!');
         }
 
@@ -537,6 +605,27 @@
         function showCreateProject() {
             console.log('Showing create project modal');
             document.getElementById('createProjectModal').classList.add('show');
+            
+            // Check if GitHub is already connected
+            if (authToken) {
+                checkGitHubConnection();
+            }
+        }
+
+        async function checkGitHubConnection() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/github/repos`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    // GitHub is connected, load repositories
+                    showGitHubConnected();
+                    loadGitHubRepositories();
+                }
+            } catch (error) {
+                console.log('GitHub not connected or error checking connection');
+            }
         }
 
         function hideCreateProject() {
@@ -678,6 +767,200 @@
         function connectGitHub() {
             console.log('Connecting to GitHub...');
             window.location.href = `${API_BASE}/auth/github`;
+        }
+
+        // GitHub repository management
+        let selectedRepository = null;
+
+        async function loadGitHubRepositories() {
+            console.log('Loading GitHub repositories...');
+            
+            if (!authToken) {
+                console.error('No auth token available');
+                return;
+            }
+
+            const loadingDiv = document.getElementById('loadingRepos');
+            const repoList = document.getElementById('repositoryList');
+            
+            if (loadingDiv) loadingDiv.style.display = 'block';
+            
+            try {
+                const response = await fetch(`${API_BASE}/auth/github/repos`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('Repositories loaded:', data.repositories?.length || 0);
+                    displayRepositories(data.repositories || []);
+                    
+                    // Show GitHub connected state
+                    showGitHubConnected();
+                } else {
+                    console.error('Failed to load repositories:', response.status);
+                    showRepositoryError('Failed to load repositories. Please try reconnecting GitHub.');
+                }
+            } catch (error) {
+                console.error('Error loading repositories:', error);
+                showRepositoryError('Error loading repositories. Please check your connection.');
+            } finally {
+                if (loadingDiv) loadingDiv.style.display = 'none';
+            }
+        }
+
+        function showGitHubConnected() {
+            const notConnected = document.getElementById('githubNotConnected');
+            const connected = document.getElementById('githubConnected');
+            
+            if (notConnected) notConnected.style.display = 'none';
+            if (connected) connected.classList.remove('hidden');
+        }
+
+        function displayRepositories(repositories) {
+            const repoList = document.getElementById('repositoryList');
+            
+            if (!repoList) return;
+            
+            if (repositories.length === 0) {
+                repoList.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fab fa-github text-4xl text-gray-300 mb-2"></i>
+                        <p class="text-gray-500">No repositories found</p>
+                        <p class="text-sm text-gray-400">Make sure you have repositories in your GitHub account</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const repoHTML = repositories.map(repo => `
+                <div class="repository-item border rounded-md p-3 mb-2 cursor-pointer hover:bg-gray-50 hover:border-indigo-300" 
+                     data-repo='${JSON.stringify(repo)}'>
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <h5 class="font-medium text-gray-900">${repo.name}</h5>
+                            <p class="text-sm text-gray-500">${repo.description || 'No description'}</p>
+                            <div class="flex items-center mt-1 text-xs text-gray-400">
+                                ${repo.language ? `<span class="mr-3"><i class="fas fa-code mr-1"></i>${repo.language}</span>` : ''}
+                                <span class="mr-3"><i class="fas fa-branch mr-1"></i>${repo.default_branch}</span>
+                                <span><i class="fas fa-clock mr-1"></i>${new Date(repo.updated_at).toLocaleDateString()}</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            ${repo.private ? '<i class="fas fa-lock text-gray-400" title="Private"></i>' : '<i class="fas fa-globe text-gray-400" title="Public"></i>'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            repoList.innerHTML = repoHTML;
+
+            // Add click handlers to repository items
+            const repoItems = repoList.querySelectorAll('.repository-item');
+            repoItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    selectRepository(JSON.parse(this.dataset.repo));
+                });
+            });
+        }
+
+        function selectRepository(repo) {
+            console.log('Repository selected:', repo.name);
+            selectedRepository = repo;
+
+            // Update UI to show selected state
+            const repoItems = document.querySelectorAll('.repository-item');
+            repoItems.forEach(item => {
+                item.classList.remove('bg-indigo-50', 'border-indigo-500');
+                if (JSON.parse(item.dataset.repo).id === repo.id) {
+                    item.classList.add('bg-indigo-50', 'border-indigo-500');
+                }
+            });
+
+            // Show selected repository info
+            const selectedInfo = document.getElementById('selectedRepoInfo');
+            const selectedDetails = document.getElementById('selectedRepoDetails');
+            
+            if (selectedInfo && selectedDetails) {
+                selectedDetails.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fab fa-github mr-2"></i>
+                        <span class="font-medium">${repo.full_name}</span>
+                        ${repo.private ? '<i class="fas fa-lock ml-2 text-gray-500" title="Private"></i>' : ''}
+                    </div>
+                    <p class="text-sm text-gray-600 mt-1">${repo.description || 'No description'}</p>
+                    <div class="flex items-center mt-2 text-sm text-gray-500">
+                        ${repo.language ? `<span class="mr-4"><i class="fas fa-code mr-1"></i>${repo.language}</span>` : ''}
+                        <span><i class="fas fa-branch mr-1"></i>${repo.default_branch}</span>
+                    </div>
+                `;
+                selectedInfo.classList.remove('hidden');
+            }
+        }
+
+        function showRepositoryError(message) {
+            const repoList = document.getElementById('repositoryList');
+            if (repoList) {
+                repoList.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-exclamation-triangle text-4xl text-red-300 mb-2"></i>
+                        <p class="text-red-600">${message}</p>
+                        <button onclick="loadGitHubRepositories()" class="mt-2 text-indigo-600 hover:text-indigo-800 text-sm">
+                            <i class="fas fa-retry mr-1"></i>Try Again
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        async function deploySelectedRepository() {
+            if (!selectedRepository) {
+                alert('Please select a repository first.');
+                return;
+            }
+
+            console.log('Deploying repository:', selectedRepository.name);
+            
+            try {
+                const response = await fetch(`${API_BASE}/projects`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}` 
+                    },
+                    body: JSON.stringify({
+                        name: selectedRepository.name,
+                        repository: {
+                            provider: 'github',
+                            url: selectedRepository.clone_url,
+                            branch: selectedRepository.default_branch,
+                            full_name: selectedRepository.full_name
+                        },
+                        build_settings: {
+                            command: 'npm run build',
+                            directory: 'dist',
+                            environment: {}
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    const project = await response.json();
+                    console.log('Project created:', project);
+                    
+                    alert(`Project "${selectedRepository.name}" created successfully! Deployment is starting...`);
+                    
+                    hideCreateProject();
+                    loadDashboardData();
+                } else {
+                    const error = await response.json();
+                    console.error('Failed to create project:', error);
+                    alert('Failed to create project: ' + (error.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error creating project:', error);
+                alert('Error creating project. Please try again.');
+            }
         }
 
         async function loadDashboardData() {
