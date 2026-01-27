@@ -10,6 +10,8 @@
     "build:client": "webpack --mode production",
     "build:functions": "node scripts/build-functions.js",
     "test": "jest",
+    "test:api": "node test-api.js",
+    "check:deployment": "node check-deployment.js",
     "cli": "node cli/index.js"
   },
   "dependencies": {

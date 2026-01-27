@@ -92,7 +92,7 @@ class HostingPlatform {
     // Serve index.html for all non-API routes (SPA support)
     this.app.get('*', (req, res) => {
       if (!req.path.startsWith('/api')) {
-        res.sendFile(path.join(__dirname, '../public/index.html'));
+        res.sendFile(path.join(process.cwd(), 'public', 'index.html'));
       }
     });
 

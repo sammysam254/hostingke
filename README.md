@@ -1,183 +1,149 @@
-# Netlify Clone - Hosting Platform with Supabase
+# HostingKE - Complete Hosting Platform
 
-A comprehensive hosting platform similar to Netlify with all core features including continuous deployment, serverless functions, custom domains, and more. Built with **Supabase** as the backend and database.
+A full-featured hosting platform like Netlify, built with Node.js, Express, and Supabase. Deploy static sites, React apps, and Node.js applications with zero configuration.
 
-## 🚀 Features
+## 🚀 Live Demo
 
-### Core Hosting Features
-- **Static Site Hosting** - Deploy and host static websites with global CDN
-- **Continuous Deployment** - Automatic deployments from Git repositories
-- **Custom Domains** - Add your own domains with SSL certificates
-- **Branch Deployments** - Deploy preview versions from different branches
+**Platform URL**: [https://hostingke-platform.onrender.com](https://hostingke-platform.onrender.com)
+
+## ✨ Features
+
+### 🎯 Core Hosting Features
+- **Instant Deployments** - Deploy from Git in seconds
+- **Multiple Git Providers** - GitHub, GitLab, Bitbucket support
+- **Automatic Builds** - Zero-config builds for popular frameworks
+- **Custom Domains** - Use your own domain with automatic SSL
+- **Preview Deployments** - Deploy pull requests automatically
 - **Rollback Support** - Instantly rollback to previous deployments
 
-### Developer Experience
-- **Git Integration** - Connect GitHub, GitLab, and Bitbucket repositories
-- **Build System** - Configurable build commands and environments
-- **Real-time Logs** - Live build logs and deployment status
-- **CLI Tool** - Command-line interface for deployments and management
-- **WebSocket Updates** - Real-time deployment notifications
+### 🔧 Developer Experience
+- **Real-time Updates** - WebSocket-powered deployment status
+- **Build Logs** - Detailed build and deployment logs
+- **CLI Tool** - Deploy and manage projects from command line
+- **Webhook Integration** - Automatic deployments on git push
+- **Environment Variables** - Secure environment configuration
 
-### Advanced Features
-- **Serverless Functions** - Deploy and run backend functions
-- **Form Handling** - Built-in form processing with notifications
-- **Split Testing** - A/B test different versions of your site
-- **Analytics** - Traffic and performance analytics
-- **Edge Optimization** - Asset optimization and compression
+### 📊 Analytics & Monitoring
+- **Traffic Analytics** - Page views, unique visitors, referrers
+- **Performance Metrics** - Load times, bounce rates
+- **Error Tracking** - 404s and other errors
+- **Real-time Dashboard** - Live visitor tracking
 
-### Security & Performance
-- **SSL Certificates** - Automatic SSL certificate provisioning
-- **Row Level Security** - Supabase RLS for data protection
-- **Global CDN** - Content delivery from multiple edge locations
-- **Asset Optimization** - Automatic image and asset optimization
-- **Caching** - Intelligent caching strategies
+### 🌐 Advanced Features
+- **Serverless Functions** - Deploy API endpoints
+- **Form Handling** - Collect form submissions
+- **CDN Integration** - Global content delivery
+- **SSL Certificates** - Automatic HTTPS with Let's Encrypt
+- **Database Integration** - Supabase PostgreSQL backend
 
-## 📦 Installation
+## 🏗️ Architecture
 
-### Prerequisites
-- Node.js 16+ 
-- Supabase account and project
-- Git
-
-### Setup
-
-1. **Clone the repository**
-```bash
-git clone <repository-url>
-cd netlify-clone
+```
+Frontend (React/HTML) → Express.js API → Supabase Database
+                     ↓
+              Deployment Engine → Git Providers
+                     ↓
+                CDN/File Storage
 ```
 
-2. **Install dependencies**
+### Tech Stack
+- **Backend**: Node.js, Express.js
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: JWT with Supabase Auth
+- **File Storage**: Supabase Storage
+- **Real-time**: Socket.IO
+- **Deployment**: Docker containers (planned)
+
+## 🚀 Quick Start
+
+### 1. Clone and Install
 ```bash
+git clone https://github.com/sammysam254/hostingke.git
+cd hostingke
 npm install
 ```
 
-3. **Set up Supabase**
-
-Create a new Supabase project at [supabase.com](https://supabase.com)
-
-Run the database schema:
-```sql
--- Copy and paste the contents of supabase/schema.sql into your Supabase SQL editor
-```
-
-Optionally add seed data:
-```sql
--- Copy and paste the contents of supabase/seed.sql into your Supabase SQL editor
-```
-
-4. **Environment Configuration**
-Create a `.env` file:
-```env
-# Supabase Configuration
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-
-# Server Configuration
-PORT=3000
-NODE_ENV=development
-BASE_URL=http://localhost:3000
-
-# Email Configuration (optional, for custom emails)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-FROM_EMAIL=noreply@yourplatform.com
-
-# Git Webhook Secret
-WEBHOOK_SECRET=your-webhook-secret
-
-# Other optional configurations...
-```
-
-5. **Start the server**
+### 2. Environment Setup
 ```bash
-# Development
+cp .env.example .env
+# Edit .env with your Supabase credentials
+```
+
+### 3. Database Setup
+```bash
+# Run the SQL schema in your Supabase dashboard
+# Import supabase/schema.sql
+# Optionally run supabase/seed-safe.sql for sample data
+```
+
+### 4. Start Development Server
+```bash
 npm run dev
-
-# Production
-npm start
 ```
 
-## 🗄️ Database Schema
+Visit `http://localhost:3000` to see your hosting platform!
 
-The platform uses Supabase PostgreSQL with the following main tables:
+## 📖 Documentation
 
-- **users** - User profiles and settings
-- **projects** - Website projects and configurations
-- **deployments** - Deployment history and status
-- **analytics** - Site traffic and performance data
-- **form_submissions** - Form submission data
-- **function_logs** - Serverless function execution logs
-- **domains** - Custom domain management
+### Deployment Guides
+- [Deploy to Render](docs/render-deployment.md) ⭐ **Recommended**
+- [Deploy to Netlify](docs/netlify-deployment.md)
+- [Supabase Setup](docs/supabase-setup.md)
+- [SSL Configuration](docs/ssl-setup.md)
+- [Cloudflare Integration](docs/cloudflare-setup.md)
 
-### Row Level Security (RLS)
+### Webhook Setup
+- [Webhook Configuration](docs/webhook-setup.md)
+- [Webhook without Secrets](docs/webhook-without-secrets.md)
 
-All tables have RLS policies ensuring users can only access their own data:
-- Users can only view/edit their own projects
-- Deployments are filtered by project ownership
-- Analytics data is restricted to project owners
-- Form submissions are publicly insertable but privately readable
+## 🧪 Testing
 
-## 🔐 Authentication
-
-Authentication is handled entirely by Supabase Auth:
-
-- **Email/Password** - Standard email authentication
-- **OAuth Providers** - GitHub, Google, etc. (configurable in Supabase)
-- **Magic Links** - Passwordless authentication
-- **JWT Tokens** - Secure API access
-
-## 🖥️ CLI Usage
-
-### Installation
+### API Testing
 ```bash
-npm install -g netlify-clone-cli
+# Test all endpoints
+npm run test:api
+
+# Test against deployed version
+BASE_URL=https://your-app.onrender.com npm run test:api
 ```
 
-### Commands
-
-**Login**
+### Deployment Check
 ```bash
-netlify-clone login
+# Quick deployment status check
+npm run check:deployment
+
+# Check specific URL
+BASE_URL=https://your-app.onrender.com npm run check:deployment
 ```
 
-**Deploy current directory**
+## 🎮 CLI Usage
+
 ```bash
-netlify-clone deploy
-netlify-clone deploy --dir ./build --project my-project
-```
+# Install CLI globally
+npm install -g .
 
-**List projects**
-```bash
-netlify-clone projects
-```
+# Login to your platform
+hostingke login
 
-**Create new project**
-```bash
-netlify-clone create --name "My Website" --repo "https://github.com/user/repo"
-```
+# Create a new project
+hostingke create my-awesome-site
 
-**Check deployment status**
-```bash
-netlify-clone status --project my-project
-```
+# Deploy current directory
+hostingke deploy
 
-**View build logs**
-```bash
-netlify-clone logs --project my-project
-```
+# Check deployment status
+hostingke status
 
+# View deployment logs
+hostingke logs
+```
 ## 🔧 API Endpoints
 
-### Authentication (Supabase Auth)
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `POST /api/auth/logout` - Logout user
-- `GET /api/auth/profile` - Get user profile
-- `POST /api/auth/refresh` - Refresh access token
+### Authentication
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `GET /api/auth/me` - Get current user
+- `POST /api/auth/verify/:token` - Email verification
 
 ### Projects
 - `GET /api/projects` - List user projects
@@ -185,147 +151,78 @@ netlify-clone logs --project my-project
 - `GET /api/projects/:id` - Get project details
 - `PUT /api/projects/:id` - Update project
 - `DELETE /api/projects/:id` - Delete project
-- `POST /api/projects/:id/deploy` - Trigger deployment
 
 ### Deployments
 - `GET /api/deployments` - List deployments
+- `POST /api/deployments` - Create deployment
 - `GET /api/deployments/:id` - Get deployment details
-- `POST /api/deployments/upload` - Upload and deploy
-- `POST /api/deployments/:id/cancel` - Cancel deployment
 - `POST /api/deployments/:id/rollback` - Rollback deployment
 
-### Domains
-- `GET /api/domains` - List domains
-- `POST /api/domains` - Add custom domain
-- `PUT /api/domains/:id/verify` - Verify domain
-- `DELETE /api/domains/:id` - Remove domain
+### Webhooks
+- `POST /api/webhooks/github` - GitHub webhook
+- `POST /api/webhooks/gitlab` - GitLab webhook
+- `POST /api/webhooks/bitbucket` - Bitbucket webhook
+- `GET /api/webhooks/status` - Webhook system status
 
-## 🏗️ Architecture
+### Analytics
+- `GET /api/analytics/:projectId` - Project analytics
+- `POST /api/analytics/:projectId/event` - Track custom event
 
-### Backend Services
-- **Express.js** - Web framework
-- **Supabase** - Database, authentication, real-time, storage
-- **Socket.io** - Real-time communication
-- **Multer** - File upload handling
+## 🌍 Environment Variables
 
-### Supabase Features Used
-- **Database** - PostgreSQL with Row Level Security
-- **Auth** - User authentication and management
-- **Real-time** - Live updates for deployments
-- **Storage** - File storage for deployments and functions
-- **Edge Functions** - Serverless function execution (optional)
-
-### Deployment Pipeline
-1. **Git Integration** - Clone/pull from repositories
-2. **Build Process** - Run build commands in isolated environment
-3. **Asset Processing** - Optimize images, minify files
-4. **CDN Deployment** - Deploy to global edge locations
-5. **DNS Updates** - Update routing for custom domains
-
-### Security Features
-- **Supabase Auth** - Secure authentication system
-- **Row Level Security** - Database-level access control
-- **Rate Limiting** - Prevent abuse
-- **Input Validation** - Sanitize user inputs
-- **HTTPS Enforcement** - SSL/TLS encryption
-
-## 🚀 Deployment
-
-### Supabase Setup
-1. Create a new Supabase project
-2. Run the schema.sql file in the SQL editor
-3. Configure authentication providers if needed
-4. Set up storage buckets for deployments and functions
-
-### Environment Variables
+### Required
 ```env
-SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_URL=your-supabase-url
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-### Docker Deployment
-```bash
-# Build image
-docker build -t netlify-clone .
+### Optional
+```env
+NODE_ENV=production
+PORT=3000
+BASE_URL=https://your-domain.com
+WEBHOOK_SECRET=your-webhook-secret
 
-# Run container
-docker run -p 3000:3000 \
-  -e SUPABASE_URL=https://your-project.supabase.co \
-  -e SUPABASE_ANON_KEY=your-anon-key \
-  -e SUPABASE_SERVICE_ROLE_KEY=your-service-role-key \
-  netlify-clone
+# Email (for notifications)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+FROM_EMAIL=noreply@yourdomain.com
+
+# SSL (Let's Encrypt)
+ACME_EMAIL=your-email@domain.com
+
+# Cloudflare (optional)
+CLOUDFLARE_API_TOKEN=your-api-token
+CLOUDFLARE_ZONE_ID=your-zone-id
 ```
-
-### Production Considerations
-- Use a process manager like PM2
-- Set up reverse proxy with Nginx
-- Configure SSL certificates
-- Set up monitoring and logging
-- Use Supabase production instance
-- Configure CDN for static assets
-
-## 🔄 Real-time Features
-
-The platform uses Supabase real-time subscriptions for:
-- **Live deployment status** - Watch deployments in real-time
-- **Build logs streaming** - See build output as it happens
-- **Project updates** - Instant updates when projects change
-- **Analytics updates** - Real-time visitor tracking
-
-## 📊 Analytics & Monitoring
-
-Built-in analytics track:
-- **Page views and unique visitors**
-- **Geographic distribution**
-- **Traffic sources and referrers**
-- **Performance metrics**
-- **Bandwidth usage**
-- **Function execution stats**
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## 🔐 SSL Certificate Configuration (Optional)
+## 📝 License
 
-The platform can automatically generate SSL certificates using Let's Encrypt. This is **optional** - you can run the platform without SSL or use your own certificates.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### ACME Configuration
-```env
-# Your email for Let's Encrypt notifications (required if using auto-SSL)
-ACME_EMAIL=your-email@domain.com
+## 🙏 Acknowledgments
 
-# Let's Encrypt server (production)
-ACME_DIRECTORY_URL=https://acme-v02.api.letsencrypt.org/directory
+- Inspired by Netlify, Vercel, and other modern hosting platforms
+- Built with amazing open-source tools and libraries
+- Special thanks to the Supabase team for the excellent backend-as-a-service
 
-# For testing, use staging server:
-# ACME_DIRECTORY_URL=https://acme-staging-v02.api.letsencrypt.org/directory
-```
+## 📞 Support
 
-**What these do:**
-- `ACME_EMAIL`: Your email address for Let's Encrypt notifications (use any valid email you own)
-- `ACME_DIRECTORY_URL`: Let's Encrypt server endpoint (no keys needed - certificates are generated automatically)
-
-**You don't need to obtain any keys beforehand** - the system generates everything automatically when you add custom domains.
-
-See `docs/ssl-setup.md` for detailed SSL configuration guide.
-
-## 🆘 Support
-
-- Documentation: [docs.yourplatform.com](https://docs.yourplatform.com)
-- Issues: [GitHub Issues](https://github.com/your-repo/issues)
-- Community: [Discord](https://discord.gg/your-server)
-- Supabase Docs: [supabase.com/docs](https://supabase.com/docs)
+- 📧 Email: support@hostingke.com
+- 🐛 Issues: [GitHub Issues](https://github.com/sammysam254/hostingke/issues)
+- 💬 Discussions: [GitHub Discussions](https://github.com/sammysam254/hostingke/discussions)
 
 ---
 
-Built with ❤️ using Supabase and modern web technologies
-
-## 📄 License
-
-MIT License - see LICENSE file for details
+**Made with ❤️ by the HostingKE Team**
