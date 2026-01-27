@@ -6,21 +6,28 @@ const router = express.Router();
 // Register
 router.post('/register', async (req, res) => {
   try {
+    console.log('Registration attempt:', { email: req.body.email, name: req.body.name });
     const { email, password, name } = req.body;
 
     if (!email || !password || !name) {
+      console.log('Missing required fields');
       return res.status(400).json({ error: 'Email, password, and name are required' });
     }
 
+    console.log('Attempting Supabase signup...');
     // Sign up with Supabase Auth
     const { data, error } = await SupabaseService.signUp(email, password, { name });
 
     if (error) {
+      console.error('Supabase signup error:', error);
       return res.status(400).json({ error: error.message });
     }
 
+    console.log('Supabase signup successful:', data.user?.id);
+
     // Create user profile in our users table
     if (data.user) {
+      console.log('Creating user profile...');
       const { data: userData, error: userError } = await SupabaseService.getAdminClient()
         .from('users')
         .insert({
@@ -33,6 +40,8 @@ router.post('/register', async (req, res) => {
 
       if (userError) {
         console.error('Failed to create user profile:', userError);
+      } else {
+        console.log('User profile created successfully');
       }
     }
 
@@ -49,18 +58,24 @@ router.post('/register', async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
   try {
+    console.log('Login attempt:', { email: req.body.email });
     const { email, password } = req.body;
 
     if (!email || !password) {
+      console.log('Missing email or password');
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
+    console.log('Attempting Supabase signin...');
     // Sign in with Supabase Auth
     const { data, error } = await SupabaseService.signIn(email, password);
 
     if (error) {
+      console.error('Supabase signin error:', error);
       return res.status(401).json({ error: error.message });
     }
+
+    console.log('Supabase signin successful:', data.user?.id);
 
     // Get user profile
     const { data: userProfile, error: profileError } = await SupabaseService.getAdminClient()
@@ -73,6 +88,7 @@ router.post('/login', async (req, res) => {
       console.error('Failed to get user profile:', profileError);
     }
 
+    console.log('Sending login response...');
     res.json({
       access_token: data.session.access_token,
       refresh_token: data.session.refresh_token,
