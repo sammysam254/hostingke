@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        button { 
+            background: #4F46E5; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 10px;
+            font-size: 16px;
+        }
+        button:hover { background: #3730A3; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal.show { display: flex; align-items: center; justify-content: center; }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 400px;
+            width: 90%;
+        }
+    </style>
+</head>
+<body>
+    <h1>HostingKE - Simple Test</h1>
+    
+    <div>
+        <button onclick="showAlert()">Test Alert</button>
+        <button onclick="showModal()">Show Modal</button>
+        <button onclick="testAPI()">Test API</button>
+        <button onclick="window.location.href='/test'">Go to Test Page</button>
+    </div>
+
+    <div id="testModal" class="modal">
+        <div class="modal-content">
+            <h2>Test Modal</h2>
+            <p>This modal works!</p>
+            <button onclick="hideModal()">Close</button>
+        </div>
+    </div>
+
+    <div id="output" style="margin-top: 20px; padding: 10px; background: #f0f0f0; border-radius: 5px;">
+        <h3>Output:</h3>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+            console.log(message);
+        }
+
+        function showAlert() {
+            alert('Button clicked successfully!');
+            log('Alert button clicked');
+        }
+
+        function showModal() {
+            document.getElementById('testModal').classList.add('show');
+            log('Modal shown');
+        }
+
+        function hideModal() {
+            document.getElementById('testModal').classList.remove('show');
+            log('Modal hidden');
+        }
+
+        async function testAPI() {
+            log('Testing API...');
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                log('API Response: ' + JSON.stringify(data));
+            } catch (error) {
+                log('API Error: ' + error.message);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Page loaded successfully');
+            log('JavaScript is working');
+        });
+
+        log('Script loaded');
+    </script>
+</body>
+</html>

@@ -76,10 +76,7 @@ class HostingPlatform {
   }
 
   setupRoutes() {
-    // Serve static files from public directory
-    this.app.use(express.static('public'));
-
-    // API routes
+    // API routes FIRST (before static files)
     this.app.use('/api/auth', authRoutes);
     this.app.use('/api/projects', authMiddleware, projectRoutes);
     this.app.use('/api/deployments', authMiddleware, deploymentRoutes);
@@ -98,26 +95,32 @@ class HostingPlatform {
     // Static file serving for deployed sites
     this.app.use('/sites', express.static('deployed-sites'));
 
-    // Serve index.html for all non-API routes (SPA support)
+    // Serve static files from public directory
+    this.app.use(express.static('public'));
+
+    // Root route - serve index.html directly
+    this.app.get('/', (req, res) => {
+      const indexPath = path.join(process.cwd(), 'public', 'index.html');
+      console.log('Serving index.html from:', indexPath);
+      res.sendFile(indexPath);
+    });
+
+    // Test route
+    this.app.get('/test', (req, res) => {
+      const testPath = path.join(process.cwd(), 'public', 'test.html');
+      console.log('Serving test.html from:', testPath);
+      res.sendFile(testPath);
+    });
+
+    // Catch-all route for SPA (LAST)
     this.app.get('*', (req, res) => {
-      if (!req.path.startsWith('/api')) {
+      // Only serve index.html for non-API, non-static file routes
+      if (!req.path.startsWith('/api') && !req.path.includes('.')) {
         const indexPath = path.join(process.cwd(), 'public', 'index.html');
-        console.log('Attempting to serve index.html from:', indexPath);
-        
-        // Check if file exists before sending
-        const fs = require('fs');
-        if (fs.existsSync(indexPath)) {
-          res.sendFile(indexPath);
-        } else {
-          console.error('index.html not found at:', indexPath);
-          console.log('Current working directory:', process.cwd());
-          console.log('Directory contents:', fs.readdirSync(process.cwd()));
-          res.status(404).json({ 
-            error: 'Frontend not found',
-            message: 'The frontend application is not available. Please check the deployment.',
-            path: indexPath
-          });
-        }
+        console.log('SPA fallback - serving index.html from:', indexPath);
+        res.sendFile(indexPath);
+      } else {
+        res.status(404).json({ error: 'Not found' });
       }
     });
 
