@@ -13,6 +13,32 @@
         .git-provider-btn { transition: all 0.2s ease; }
         .git-provider-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .step { transition: opacity 0.3s ease; }
+        
+        /* Ensure all buttons are clickable */
+        button {
+            cursor: pointer !important;
+            pointer-events: auto !important;
+            position: relative !important;
+            z-index: 10 !important;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+        }
+        
+        /* Fix any potential overlay issues */
+        .fixed {
+            z-index: 9999 !important;
+        }
+        
+        /* Debug styles - remove after testing */
+        #loginBtn, #signupBtn, #getStartedBtn {
+            border: 2px solid red !important;
+            background-color: blue !important;
+            color: white !important;
+            padding: 10px !important;
+            cursor: pointer !important;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -386,8 +412,29 @@
         // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing app...');
+            
+            // Add debug info
+            console.log('Document ready state:', document.readyState);
+            console.log('Available buttons:', {
+                loginBtn: document.getElementById('loginBtn'),
+                signupBtn: document.getElementById('signupBtn'),
+                getStartedBtn: document.getElementById('getStartedBtn')
+            });
+            
             initializeApp();
             setupEventListeners();
+            
+            // Add click test for debugging
+            setTimeout(() => {
+                const testBtn = document.getElementById('loginBtn');
+                if (testBtn) {
+                    console.log('Login button found, adding test click handler');
+                    testBtn.addEventListener('click', function() {
+                        console.log('TEST: Login button clicked via addEventListener!');
+                        alert('Login button works!');
+                    });
+                }
+            }, 500);
             
             // Check for GitHub OAuth callback
             const urlParams = new URLSearchParams(window.location.search);
@@ -417,62 +464,126 @@
         function setupEventListeners() {
             console.log('Setting up event listeners...');
             
-            // Navigation
-            const loginBtn = document.getElementById('loginBtn');
-            const signupBtn = document.getElementById('signupBtn');
-            const getStartedBtn = document.getElementById('getStartedBtn');
-            
-            if (loginBtn) {
-                loginBtn.addEventListener('click', function(e) {
-                    console.log('Login button clicked');
-                    e.preventDefault();
-                    showLoginModal();
+            // Wait a bit for DOM to be fully ready
+            setTimeout(() => {
+                // Navigation buttons
+                const loginBtn = document.getElementById('loginBtn');
+                const signupBtn = document.getElementById('signupBtn');
+                const getStartedBtn = document.getElementById('getStartedBtn');
+                
+                console.log('Found elements:', {
+                    loginBtn: !!loginBtn,
+                    signupBtn: !!signupBtn,
+                    getStartedBtn: !!getStartedBtn
                 });
-            }
-            
-            if (signupBtn) {
-                signupBtn.addEventListener('click', function(e) {
-                    console.log('Signup button clicked');
-                    e.preventDefault();
-                    showSignupModal();
-                });
-            }
-            
-            if (getStartedBtn) {
-                getStartedBtn.addEventListener('click', function(e) {
-                    console.log('Get started button clicked');
-                    e.preventDefault();
-                    showSignupModal();
-                });
-            }
+                
+                if (loginBtn) {
+                    loginBtn.style.cursor = 'pointer';
+                    loginBtn.onclick = function(e) {
+                        console.log('Login button clicked!');
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showLoginModal();
+                        return false;
+                    };
+                    console.log('Login button event attached');
+                }
+                
+                if (signupBtn) {
+                    signupBtn.style.cursor = 'pointer';
+                    signupBtn.onclick = function(e) {
+                        console.log('Signup button clicked!');
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showSignupModal();
+                        return false;
+                    };
+                    console.log('Signup button event attached');
+                }
+                
+                if (getStartedBtn) {
+                    getStartedBtn.style.cursor = 'pointer';
+                    getStartedBtn.onclick = function(e) {
+                        console.log('Get started button clicked!');
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showSignupModal();
+                        return false;
+                    };
+                    console.log('Get started button event attached');
+                }
 
-            document.getElementById('logoutBtn')?.addEventListener('click', logout);
-            document.getElementById('dashboardLink')?.addEventListener('click', function(e) {
-                e.preventDefault();
-                showDashboard();
-            });
+                // Modal close buttons
+                const closeLoginModal = document.getElementById('closeLoginModal');
+                const closeSignupModal = document.getElementById('closeSignupModal');
+                
+                if (closeLoginModal) {
+                    closeLoginModal.onclick = function(e) {
+                        e.preventDefault();
+                        hideLoginModal();
+                        return false;
+                    };
+                }
+                
+                if (closeSignupModal) {
+                    closeSignupModal.onclick = function(e) {
+                        e.preventDefault();
+                        hideSignupModal();
+                        return false;
+                    };
+                }
 
-            // Modals
-            document.getElementById('closeLoginModal')?.addEventListener('click', hideLoginModal);
-            document.getElementById('closeSignupModal')?.addEventListener('click', hideSignupModal);
-            document.getElementById('closeCreateProjectModal')?.addEventListener('click', hideCreateProjectModal);
+                // Forms
+                const loginForm = document.getElementById('loginForm');
+                const signupForm = document.getElementById('signupForm');
+                
+                if (loginForm) {
+                    loginForm.onsubmit = function(e) {
+                        e.preventDefault();
+                        handleLogin(e);
+                        return false;
+                    };
+                }
+                
+                if (signupForm) {
+                    signupForm.onsubmit = function(e) {
+                        e.preventDefault();
+                        handleSignup(e);
+                        return false;
+                    };
+                }
 
-            // Forms
-            document.getElementById('loginForm')?.addEventListener('submit', handleLogin);
-            document.getElementById('signupForm')?.addEventListener('submit', handleSignup);
+                // User menu and other buttons
+                const userMenuBtn = document.getElementById('userMenuBtn');
+                const logoutBtn = document.getElementById('logoutBtn');
+                const dashboardLink = document.getElementById('dashboardLink');
+                
+                if (userMenuBtn) {
+                    userMenuBtn.onclick = function(e) {
+                        e.preventDefault();
+                        toggleUserMenu();
+                        return false;
+                    };
+                }
+                
+                if (logoutBtn) {
+                    logoutBtn.onclick = function(e) {
+                        e.preventDefault();
+                        logout();
+                        return false;
+                    };
+                }
+                
+                if (dashboardLink) {
+                    dashboardLink.onclick = function(e) {
+                        e.preventDefault();
+                        showDashboard();
+                        return false;
+                    };
+                }
 
-            // User menu
-            document.getElementById('userMenuBtn')?.addEventListener('click', toggleUserMenu);
-
-            // Project creation
-            document.getElementById('newProjectBtn')?.addEventListener('click', showCreateProjectModal);
-            document.getElementById('createFirstProjectBtn')?.addEventListener('click', showCreateProjectModal);
-            document.getElementById('nextStepBtn')?.addEventListener('click', nextStep);
-            document.getElementById('prevStepBtn')?.addEventListener('click', prevStep);
-            document.getElementById('createProjectSubmitBtn')?.addEventListener('click', handleCreateProject);
-
-            // GitHub connection
-            document.getElementById('connectGitHubBtn')?.addEventListener('click', connectGitHub);
+                console.log('All event listeners set up successfully!');
+            }, 100);
         }
 
         // Authentication functions
@@ -568,35 +679,61 @@
 
         // UI functions
         function showLandingPage() {
+            console.log('Showing landing page');
             document.getElementById('landingPage').classList.remove('hidden');
             document.getElementById('dashboardPage').classList.add('hidden');
         }
 
         function showDashboard() {
+            console.log('Showing dashboard');
             document.getElementById('landingPage').classList.add('hidden');
             document.getElementById('dashboardPage').classList.remove('hidden');
             loadDashboardData();
         }
 
         function showLoginModal() {
-            document.getElementById('loginModal').classList.remove('hidden');
+            console.log('Showing login modal');
+            const modal = document.getElementById('loginModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                console.log('Login modal shown');
+            } else {
+                console.error('Login modal not found!');
+            }
         }
 
         function hideLoginModal() {
-            document.getElementById('loginModal').classList.add('hidden');
+            console.log('Hiding login modal');
+            const modal = document.getElementById('loginModal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
         }
 
         function showSignupModal() {
-            document.getElementById('signupModal').classList.remove('hidden');
+            console.log('Showing signup modal');
+            const modal = document.getElementById('signupModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                console.log('Signup modal shown');
+            } else {
+                console.error('Signup modal not found!');
+            }
         }
 
         function hideSignupModal() {
-            document.getElementById('signupModal').classList.add('hidden');
+            console.log('Hiding signup modal');
+            const modal = document.getElementById('signupModal');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
         }
 
         function toggleUserMenu() {
             const dropdown = document.getElementById('userDropdown');
-            dropdown.classList.toggle('hidden');
+            if (dropdown) {
+                dropdown.classList.toggle('hidden');
+            }
         }
 
         function updateNavigation() {
@@ -605,13 +742,13 @@
             const userMenu = document.getElementById('userMenu');
 
             if (currentUser) {
-                loginBtn.classList.add('hidden');
-                signupBtn.classList.add('hidden');
-                userMenu.classList.remove('hidden');
+                if (loginBtn) loginBtn.classList.add('hidden');
+                if (signupBtn) signupBtn.classList.add('hidden');
+                if (userMenu) userMenu.classList.remove('hidden');
             } else {
-                loginBtn.classList.remove('hidden');
-                signupBtn.classList.remove('hidden');
-                userMenu.classList.add('hidden');
+                if (loginBtn) loginBtn.classList.remove('hidden');
+                if (signupBtn) signupBtn.classList.remove('hidden');
+                if (userMenu) userMenu.classList.add('hidden');
             }
         }
 
