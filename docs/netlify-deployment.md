@@ -6,11 +6,11 @@ This guide shows you how to deploy your hosting platform to Netlify using Netlif
 
 ### Step 1: Push Fixed Code to GitHub
 
-The package.json has been updated to fix the dependency issue. Commit and push:
+The package.json has been updated to fix all dependency issues. Commit and push:
 
 ```bash
 git add .
-git commit -m "Fix package.json dependencies for Netlify deployment"
+git commit -m "Fix all dependencies and serverless wrapper for Netlify deployment"
 git push origin main
 ```
 
@@ -46,27 +46,32 @@ Click **Deploy site** and wait for the build to complete.
 - Configures Netlify build settings
 - Sets up redirects to route all requests to the serverless function
 - Adds security headers
+- Sets Node.js version to 20 (required for Supabase)
 
 ### netlify/functions/server.js
 - Wraps your Express app for serverless deployment
 - Uses `serverless-http` to handle Lambda/Netlify Functions
+- Fixed to properly access the Express app instance
 
 ## 📋 What Was Fixed
 
 ### 1. Package Dependencies
-- Fixed `rate-limiter-flexible` version from `^3.0.8` to `^2.4.2`
-- Added `serverless-http` for Netlify Functions compatibility
-- Updated build script for serverless deployment
+- ✅ Fixed `rate-limiter-flexible` version from `^3.0.8` to `^2.4.1`
+- ✅ Added missing `@octokit/rest` for GitHub API integration
+- ✅ Added missing `mongoose` and `bcryptjs` dependencies
+- ✅ Added `serverless-http` for Netlify Functions compatibility
 
 ### 2. Server Configuration
-- Modified server.js to export properly for serverless
-- Added conditional server startup (only runs locally)
-- Made it compatible with Netlify Functions
+- ✅ Fixed serverless wrapper to properly access Express app
+- ✅ Modified server.js to export properly for serverless
+- ✅ Added conditional server startup (only runs locally)
+- ✅ Made it compatible with Netlify Functions
 
 ### 3. Build Process
-- Simplified build command for API-only deployment
-- Added Netlify-specific configuration
-- Set up proper redirects for API routes
+- ✅ Set Node.js version to 20 for Supabase compatibility
+- ✅ Simplified build command for API-only deployment
+- ✅ Added Netlify-specific configuration
+- ✅ Set up proper redirects for API routes
 
 ## 🌐 How It Works
 
