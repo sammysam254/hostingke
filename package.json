@@ -1,0 +1,45 @@
+{
+  "name": "netlify-clone",
+  "version": "1.0.0",
+  "description": "A hosting platform like Netlify with all core features",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "build": "npm run build:client && npm run build:functions",
+    "build:client": "webpack --mode production",
+    "build:functions": "node scripts/build-functions.js",
+    "test": "jest",
+    "cli": "node cli/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.4",
+    "multer": "^1.4.5-lts.1",
+    "@supabase/supabase-js": "^2.39.0",
+    "helmet": "^7.1.0",
+    "cors": "^2.8.5",
+    "compression": "^1.7.4",
+    "rate-limiter-flexible": "^3.0.8",
+    "simple-git": "^3.20.0",
+    "archiver": "^6.0.1",
+    "unzipper": "^0.10.14",
+    "sharp": "^0.33.1",
+    "node-cron": "^3.0.3",
+    "ws": "^8.14.2",
+    "acme-client": "^5.1.0",
+    "cloudflare": "^3.1.0",
+    "nodemailer": "^6.9.7",
+    "axios": "^1.6.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4",
+    "commander": "^11.1.0"
+  },
+  "keywords": ["hosting", "deployment", "netlify", "jamstack", "serverless"],
+  "author": "Your Name",
+  "license": "MIT"
+}
