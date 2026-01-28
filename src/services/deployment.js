@@ -261,7 +261,9 @@ class DeploymentService {
       });
     }
   }
-}
+
+  async processQueue() {
+    if (this.isProcessing || this.buildQueue.length === 0) {
       return;
     }
 
