@@ -88,6 +88,20 @@ class HostingPlatform {
   }
 
   setupRoutes() {
+    // Subdomain handling middleware - must be first
+    this.app.use(async (req, res, next) => {
+      const host = req.get('host');
+      const subdomain = this.extractSubdomain(host);
+      
+      if (subdomain && subdomain !== 'www') {
+        // This is a project subdomain request
+        req.projectSlug = subdomain;
+        return this.serveProject(req, res, next);
+      }
+      
+      next();
+    });
+
     // API routes FIRST (before static files)
     this.app.use('/api/auth', authRoutes);
     this.app.use('/api/projects', authMiddleware, projectRoutes);
@@ -103,9 +117,6 @@ class HostingPlatform {
     this.app.get('/health', (req, res) => {
       res.json({ status: 'OK', timestamp: new Date().toISOString() });
     });
-
-    // Static file serving for deployed sites
-    this.app.use('/sites', express.static('deployed-sites'));
 
     // Serve static files from public directory
     this.app.use(express.static('public'));
@@ -145,6 +156,136 @@ class HostingPlatform {
 
     // Error handling
     this.app.use(errorHandler);
+  }
+
+  // Extract subdomain from host
+  extractSubdomain(host) {
+    if (!host) return null;
+    
+    const parts = host.split('.');
+    
+    // For localhost:3000 or similar
+    if (host.includes('localhost')) {
+      const localParts = host.split('.');
+      if (localParts.length > 1 && localParts[0] !== 'localhost') {
+        return localParts[0];
+      }
+      return null;
+    }
+    
+    // For production domains like project.hostingke.onrender.com
+    if (parts.length > 2) {
+      return parts[0];
+    }
+    
+    return null;
+  }
+
+  // Serve project from subdomain
+  async serveProject(req, res, next) {
+    try {
+      const projectSlug = req.projectSlug;
+      console.log('Serving project:', projectSlug);
+
+      // Get project from database
+      const SupabaseService = require('./services/supabase');
+      const { data: project, error } = await SupabaseService.getAdminClient()
+        .from('projects')
+        .select('*')
+        .eq('slug', projectSlug)
+        .single();
+
+      if (error || !project) {
+        console.log('Project not found:', projectSlug);
+        return res.status(404).send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Project Not Found</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .error { color: #e74c3c; }
+            </style>
+          </head>
+          <body>
+            <h1 class="error">Project Not Found</h1>
+            <p>The project "${projectSlug}" does not exist or has been removed.</p>
+            <a href="https://${req.get('host').replace(projectSlug + '.', '')}">← Back to HostingKE</a>
+          </body>
+          </html>
+        `);
+      }
+
+      // Check if project has been built
+      const projectPath = path.join(process.cwd(), 'deployed-sites', projectSlug);
+      const fs = require('fs');
+      
+      if (!fs.existsSync(projectPath)) {
+        console.log('Project not built yet:', projectSlug);
+        return res.status(503).send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Project Building</title>
+            <meta http-equiv="refresh" content="10">
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .building { color: #3498db; }
+              .spinner { animation: spin 1s linear infinite; display: inline-block; }
+              @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            </style>
+          </head>
+          <body>
+            <h1 class="building">🚀 Building Project</h1>
+            <div class="spinner">⚙️</div>
+            <p>Your project "${project.name}" is being built and deployed.</p>
+            <p>This page will refresh automatically...</p>
+            <small>Project: ${projectSlug}</small>
+          </body>
+          </html>
+        `);
+      }
+
+      // Serve the built project
+      const buildDirectory = project.build_settings?.directory || 'dist';
+      const fullProjectPath = path.join(projectPath, buildDirectory);
+      
+      if (fs.existsSync(fullProjectPath)) {
+        // Serve static files from the built project
+        express.static(fullProjectPath)(req, res, (err) => {
+          if (err) {
+            // If file not found, try to serve index.html for SPA
+            const indexPath = path.join(fullProjectPath, 'index.html');
+            if (fs.existsSync(indexPath)) {
+              res.sendFile(indexPath);
+            } else {
+              res.status(404).send('File not found');
+            }
+          }
+        });
+      } else {
+        res.status(503).send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Build Error</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .error { color: #e74c3c; }
+            </style>
+          </head>
+          <body>
+            <h1 class="error">Build Error</h1>
+            <p>There was an error building your project "${project.name}".</p>
+            <p>Please check your build configuration and try redeploying.</p>
+          </body>
+          </html>
+        `);
+      }
+    } catch (error) {
+      console.error('Error serving project:', error);
+      res.status(500).send('Internal server error');
+    }
   }
 
   setupWebSocket() {

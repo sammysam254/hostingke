@@ -1417,16 +1417,27 @@
                 return;
             }
 
-            const projectsHTML = projects.map(project => `
+            const currentHost = window.location.host;
+            const projectsHTML = projects.map(project => {
+                const projectUrl = `${project.slug}.${currentHost}`;
+                return `
                 <div class="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow">
                     <div class="p-6">
                         <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-medium text-gray-900">${project.name}</h3>
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${project.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
-                                ${project.status}
-                            </span>
+                            <div class="flex-1">
+                                <h3 class="text-lg font-medium text-gray-900 project-name" data-project-id="${project.id}">${project.name}</h3>
+                                <input type="text" class="hidden text-lg font-medium text-gray-900 border border-gray-300 rounded px-2 py-1 project-name-input" data-project-id="${project.id}" value="${project.name}">
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="editProjectName('${project.id}')" class="text-gray-400 hover:text-gray-600 edit-name-btn" data-project-id="${project.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${project.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                                    ${project.status}
+                                </span>
+                            </div>
                         </div>
-                        <p class="text-sm text-gray-500 mb-4">${project.slug}.hostingke.com</p>
+                        <p class="text-sm text-gray-500 mb-4 font-mono">${projectUrl}</p>
                         <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
                             <span><i class="fas fa-rocket mr-1"></i>${project.deployment_count || 0} deployments</span>
                             <span><i class="fas fa-clock mr-1"></i>${new Date(project.created_at).toLocaleDateString()}</span>
@@ -1441,14 +1452,114 @@
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
 
             container.innerHTML = projectsHTML;
         }
 
-        // Open project in new tab
+        // Open project in new tab with flexible subdomain
         function openProject(slug) {
-            window.open(`https://${slug}.hostingke.com`, '_blank');
+            const currentHost = window.location.host;
+            const projectUrl = `https://${slug}.${currentHost}`;
+            window.open(projectUrl, '_blank');
+        }
+
+        // Edit project name functionality
+        function editProjectName(projectId) {
+            const nameElement = document.querySelector(`.project-name[data-project-id="${projectId}"]`);
+            const inputElement = document.querySelector(`.project-name-input[data-project-id="${projectId}"]`);
+            const editBtn = document.querySelector(`.edit-name-btn[data-project-id="${projectId}"]`);
+            
+            if (nameElement && inputElement && editBtn) {
+                // Show input, hide name
+                nameElement.classList.add('hidden');
+                inputElement.classList.remove('hidden');
+                inputElement.focus();
+                inputElement.select();
+                
+                // Change edit button to save/cancel
+                editBtn.innerHTML = '<i class="fas fa-check text-green-600"></i>';
+                editBtn.onclick = () => saveProjectName(projectId);
+                
+                // Handle Enter key
+                inputElement.onkeypress = (e) => {
+                    if (e.key === 'Enter') {
+                        saveProjectName(projectId);
+                    } else if (e.key === 'Escape') {
+                        cancelEditProjectName(projectId);
+                    }
+                };
+                
+                // Handle blur
+                inputElement.onblur = () => {
+                    setTimeout(() => saveProjectName(projectId), 100);
+                };
+            }
+        }
+
+        async function saveProjectName(projectId) {
+            const nameElement = document.querySelector(`.project-name[data-project-id="${projectId}"]`);
+            const inputElement = document.querySelector(`.project-name-input[data-project-id="${projectId}"]`);
+            const editBtn = document.querySelector(`.edit-name-btn[data-project-id="${projectId}"]`);
+            
+            const newName = inputElement.value.trim();
+            
+            if (!newName) {
+                alert('Project name cannot be empty');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/projects/${projectId}/name`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ name: newName })
+                });
+                
+                if (response.ok) {
+                    // Update UI
+                    nameElement.textContent = newName;
+                    nameElement.classList.remove('hidden');
+                    inputElement.classList.add('hidden');
+                    
+                    // Reset edit button
+                    editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+                    editBtn.onclick = () => editProjectName(projectId);
+                    
+                    // Clear event handlers
+                    inputElement.onkeypress = null;
+                    inputElement.onblur = null;
+                } else {
+                    const error = await response.json();
+                    alert('Failed to update project name: ' + (error.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error updating project name:', error);
+                alert('Error updating project name. Please try again.');
+            }
+        }
+
+        function cancelEditProjectName(projectId) {
+            const nameElement = document.querySelector(`.project-name[data-project-id="${projectId}"]`);
+            const inputElement = document.querySelector(`.project-name-input[data-project-id="${projectId}"]`);
+            const editBtn = document.querySelector(`.edit-name-btn[data-project-id="${projectId}"]`);
+            
+            // Reset to original state
+            nameElement.classList.remove('hidden');
+            inputElement.classList.add('hidden');
+            inputElement.value = nameElement.textContent;
+            
+            // Reset edit button
+            editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+            editBtn.onclick = () => editProjectName(projectId);
+            
+            // Clear event handlers
+            inputElement.onkeypress = null;
+            inputElement.onblur = null;
         }
 
         // View project details (placeholder)

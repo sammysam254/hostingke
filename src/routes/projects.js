@@ -92,6 +92,10 @@ router.post('/', async (req, res) => {
       counter++;
     }
 
+    // Generate flexible subdomain based on current host
+    const currentHost = req.get('host') || 'hostingke.com';
+    const baseHost = currentHost.includes('localhost') ? 'localhost:3000' : currentHost;
+    
     const projectData = {
       name,
       slug,
@@ -108,7 +112,7 @@ router.post('/', async (req, res) => {
         environment: build_settings?.environment || {}
       },
       domains: [{
-        domain: `${slug}.hostingke.com`,
+        domain: `${slug}.${baseHost}`,
         is_custom: false,
         ssl_enabled: true,
         verified: true
@@ -170,6 +174,51 @@ router.post('/', async (req, res) => {
   } catch (error) {
     console.error('Create project error:', error);
     res.status(500).json({ error: 'Failed to create project: ' + error.message });
+  }
+});
+
+// Update project name
+router.put('/:id/name', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+
+    if (!name || name.trim().length === 0) {
+      return res.status(400).json({ error: 'Project name is required' });
+    }
+
+    // Get project to verify ownership
+    const { data: project, error: projectError } = await SupabaseService.getAdminClient()
+      .from('projects')
+      .select('*')
+      .eq('id', id)
+      .eq('owner_id', req.user.id)
+      .single();
+
+    if (projectError || !project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+
+    // Update project name
+    const { data: updatedProject, error: updateError } = await SupabaseService.getAdminClient()
+      .from('projects')
+      .update({ name: name.trim() })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Update project name error:', updateError);
+      return res.status(500).json({ error: 'Failed to update project name' });
+    }
+
+    res.json({ 
+      message: 'Project name updated successfully',
+      project: updatedProject 
+    });
+  } catch (error) {
+    console.error('Update project name error:', error);
+    res.status(500).json({ error: 'Failed to update project name' });
   }
 });
 

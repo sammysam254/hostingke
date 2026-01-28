@@ -1,6 +1,12 @@
 const SupabaseService = require('./supabase');
 const GitService = require('./git');
 const CDNService = require('./cdn');
+const path = require('path');
+const fs = require('fs').promises;
+const { exec } = require('child_process');
+const { promisify } = require('util');
+
+const execAsync = promisify(exec);
 
 class DeploymentService {
   constructor(io) {
@@ -13,10 +19,13 @@ class DeploymentService {
     try {
       // Update deployment with commit info if available
       if (commitInfo) {
-        const { error } = await SupabaseService.updateDeployment(deployment.id, {
-          commit_sha: commitInfo.commitSha,
-          commit_message: commitInfo.commitMessage
-        });
+        const { error } = await SupabaseService.getAdminClient()
+          .from('deployments')
+          .update({
+            commit_sha: commitInfo.commitSha,
+            commit_message: commitInfo.commitMessage
+          })
+          .eq('id', deployment.id);
         
         if (error) {
           console.error('Failed to update deployment with commit info:', error);
@@ -48,6 +57,211 @@ class DeploymentService {
   async processQueue() {
     if (this.buildQueue.length === 0) {
       this.isProcessing = false;
+      return;
+    }
+
+    this.isProcessing = true;
+    const { deploymentId, project, deployment } = this.buildQueue.shift();
+
+    try {
+      console.log(`Processing deployment ${deploymentId} for project ${project.name}`);
+      
+      // Update deployment status to building
+      await this.updateDeploymentStatus(deploymentId, 'building', 'Building project...');
+      
+      // Build the project
+      const buildResult = await this.buildProject(project, deployment);
+      
+      if (buildResult.success) {
+        // Update deployment status to ready
+        await this.updateDeploymentStatus(deploymentId, 'ready', 'Deployment successful', {
+          url: buildResult.url,
+          build_time: buildResult.buildTime,
+          size: buildResult.size
+        });
+        
+        console.log(`Deployment ${deploymentId} completed successfully`);
+      } else {
+        // Update deployment status to error
+        await this.updateDeploymentStatus(deploymentId, 'error', buildResult.error);
+        console.error(`Deployment ${deploymentId} failed:`, buildResult.error);
+      }
+    } catch (error) {
+      console.error(`Error processing deployment ${deploymentId}:`, error);
+      await this.updateDeploymentStatus(deploymentId, 'error', error.message);
+    }
+
+    // Process next item in queue
+    setTimeout(() => this.processQueue(), 1000);
+  }
+
+  async buildProject(project, deployment) {
+    const startTime = Date.now();
+    const projectPath = path.join(process.cwd(), 'deployed-sites', project.slug);
+    
+    try {
+      // Create project directory
+      await fs.mkdir(projectPath, { recursive: true });
+      
+      // Clone repository
+      console.log(`Cloning repository: ${project.repository.url}`);
+      await this.cloneRepository(project.repository.url, project.repository.branch, projectPath);
+      
+      // Install dependencies and build
+      console.log(`Building project: ${project.name}`);
+      const buildResult = await this.runBuild(projectPath, project.build_settings);
+      
+      if (!buildResult.success) {
+        return { success: false, error: buildResult.error };
+      }
+      
+      const buildTime = Math.round((Date.now() - startTime) / 1000);
+      const size = await this.calculateProjectSize(projectPath);
+      
+      // Generate project URL
+      const currentHost = process.env.BASE_URL ? 
+        new URL(process.env.BASE_URL).host : 
+        'hostingke.onrender.com';
+      const url = `https://${project.slug}.${currentHost}`;
+      
+      return {
+        success: true,
+        url,
+        buildTime,
+        size
+      };
+    } catch (error) {
+      console.error('Build error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async cloneRepository(repoUrl, branch, targetPath) {
+    try {
+      // Convert GitHub URL to clone URL if needed
+      let cloneUrl = repoUrl;
+      if (repoUrl.includes('github.com') && !repoUrl.endsWith('.git')) {
+        cloneUrl = repoUrl + '.git';
+      }
+      
+      const command = `git clone --depth 1 --branch ${branch} ${cloneUrl} ${targetPath}`;
+      console.log('Executing:', command);
+      
+      const { stdout, stderr } = await execAsync(command);
+      console.log('Clone output:', stdout);
+      
+      if (stderr && !stderr.includes('Cloning into')) {
+        console.error('Clone stderr:', stderr);
+      }
+    } catch (error) {
+      console.error('Clone error:', error);
+      throw new Error(`Failed to clone repository: ${error.message}`);
+    }
+  }
+
+  async runBuild(projectPath, buildSettings) {
+    try {
+      const buildCommand = buildSettings.command || 'npm run build';
+      const buildDirectory = buildSettings.directory || 'dist';
+      
+      console.log(`Running build command: ${buildCommand}`);
+      
+      // Check if package.json exists
+      const packageJsonPath = path.join(projectPath, 'package.json');
+      try {
+        await fs.access(packageJsonPath);
+        
+        // Install dependencies first
+        console.log('Installing dependencies...');
+        const { stdout: installOutput } = await execAsync('npm install', { 
+          cwd: projectPath,
+          timeout: 300000 // 5 minutes timeout
+        });
+        console.log('Install output:', installOutput);
+        
+        // Run build command
+        console.log('Running build...');
+        const { stdout: buildOutput } = await execAsync(buildCommand, { 
+          cwd: projectPath,
+          timeout: 600000 // 10 minutes timeout
+        });
+        console.log('Build output:', buildOutput);
+        
+        // Check if build directory exists
+        const buildPath = path.join(projectPath, buildDirectory);
+        try {
+          await fs.access(buildPath);
+          console.log(`Build directory found: ${buildPath}`);
+        } catch {
+          // If build directory doesn't exist, assume it's a static site
+          console.log('No build directory found, treating as static site');
+        }
+        
+        return { success: true };
+      } catch (error) {
+        // No package.json, treat as static HTML site
+        console.log('No package.json found, treating as static HTML site');
+        
+        // Check if index.html exists
+        const indexPath = path.join(projectPath, 'index.html');
+        try {
+          await fs.access(indexPath);
+          console.log('Static HTML site detected');
+          return { success: true };
+        } catch {
+          throw new Error('No index.html found and no build process available');
+        }
+      }
+    } catch (error) {
+      console.error('Build error:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async calculateProjectSize(projectPath) {
+    try {
+      const { stdout } = await execAsync(`du -sb ${projectPath}`);
+      return parseInt(stdout.split('\t')[0]);
+    } catch (error) {
+      console.error('Error calculating project size:', error);
+      return 0;
+    }
+  }
+
+  async updateDeploymentStatus(deploymentId, status, message, additionalData = {}) {
+    try {
+      const updateData = {
+        status,
+        build_log: [message],
+        ...additionalData
+      };
+      
+      const { error } = await SupabaseService.getAdminClient()
+        .from('deployments')
+        .update(updateData)
+        .eq('id', deploymentId);
+      
+      if (error) {
+        console.error('Failed to update deployment status:', error);
+      }
+      
+      // Emit real-time update
+      this.emitDeploymentUpdate(deploymentId, { status, message, ...additionalData });
+    } catch (error) {
+      console.error('Error updating deployment status:', error);
+    }
+  }
+
+  emitDeploymentUpdate(deploymentId, data) {
+    if (this.io) {
+      this.io.to(`deployment-${deploymentId}`).emit('deployment-update', {
+        deploymentId,
+        ...data,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+}
       return;
     }
 
