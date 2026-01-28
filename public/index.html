@@ -345,12 +345,48 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('HostingKE initialized - DOM ready');
             
+            // Check for existing session token first
+            const sessionToken = localStorage.getItem('sessionToken');
+            if (sessionToken && !authToken) {
+                console.log('Found existing session token');
+                authToken = sessionToken;
+                localStorage.setItem('authToken', sessionToken);
+                
+                // Try to decode user info from session token
+                try {
+                    const decoded = JSON.parse(atob(sessionToken));
+                    if (decoded.exp > Date.now()) {
+                        currentUser = {
+                            id: decoded.userId,
+                            email: decoded.email,
+                            githubConnected: decoded.githubConnected
+                        };
+                        console.log('Restored user from session token:', currentUser);
+                        updateNavigation();
+                    } else {
+                        console.log('Session token expired');
+                        localStorage.removeItem('sessionToken');
+                        localStorage.removeItem('authToken');
+                        authToken = null;
+                    }
+                } catch (e) {
+                    console.error('Error decoding session token:', e);
+                }
+            }
+            
             // Handle URL parameters (for OAuth callbacks)
             handleUrlParameters();
             
             setupEventListeners();
-            if (authToken) {
+            
+            // Only check auth status if we don't have a current user from session token
+            if (authToken && !currentUser) {
                 checkAuthStatus();
+            }
+            
+            // If user is authenticated, show dashboard
+            if (currentUser) {
+                showDashboard();
             }
         });
 
@@ -367,20 +403,35 @@
                     localStorage.setItem('authToken', token);
                     authToken = token;
                     
+                    // Decode the token to get user info
+                    try {
+                        const decoded = JSON.parse(atob(token));
+                        currentUser = {
+                            id: decoded.userId,
+                            email: decoded.email,
+                            githubConnected: decoded.githubConnected
+                        };
+                        console.log('User authenticated from GitHub OAuth:', currentUser);
+                    } catch (e) {
+                        console.error('Error decoding token:', e);
+                    }
+                    
+                    // Update navigation to show logged in state
+                    updateNavigation();
+                    
                     // Show success message
                     alert('GitHub connected successfully! You can now access your repositories.');
                     
                     // Clean up URL
                     window.history.replaceState({}, document.title, window.location.pathname);
                     
-                    // Check auth status and show dashboard
-                    checkAuthStatus();
+                    // Show dashboard and create project modal
                     showDashboard();
                     
-                    // Show create project modal with GitHub connected
+                    // Show create project modal with GitHub connected after a short delay
                     setTimeout(() => {
                         showCreateProjectWithGitHub();
-                    }, 1000);
+                    }, 500);
                 }
             }
             
@@ -754,6 +805,24 @@
             if (!authToken) return;
 
             try {
+                // First try to use the token as a session token
+                try {
+                    const decoded = JSON.parse(atob(authToken));
+                    if (decoded.userId && decoded.exp > Date.now()) {
+                        currentUser = {
+                            id: decoded.userId,
+                            email: decoded.email,
+                            githubConnected: decoded.githubConnected
+                        };
+                        updateNavigation();
+                        console.log('User authenticated via session token:', currentUser);
+                        return;
+                    }
+                } catch (e) {
+                    // Not a session token, try Supabase Auth
+                }
+
+                // Try Supabase Auth profile endpoint
                 const response = await fetch(`${API_BASE}/auth/profile`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
@@ -762,8 +831,9 @@
                     const userData = await response.json();
                     currentUser = userData;
                     updateNavigation();
-                    console.log('User authenticated:', currentUser);
+                    console.log('User authenticated via Supabase:', currentUser);
                 } else {
+                    console.log('Auth check failed, logging out');
                     logout();
                 }
             } catch (error) {
@@ -777,6 +847,7 @@
             authToken = null;
             currentUser = null;
             localStorage.removeItem('authToken');
+            localStorage.removeItem('sessionToken');
             updateNavigation();
             showLanding();
         }
