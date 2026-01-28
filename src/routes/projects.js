@@ -107,6 +107,12 @@ router.post('/', async (req, res) => {
         directory: build_settings?.directory || 'dist',
         environment: build_settings?.environment || {}
       },
+      domains: [{
+        domain: `${slug}.hostingke.com`,
+        is_custom: false,
+        ssl_enabled: true,
+        verified: true
+      }],
       status: 'active'
     };
 

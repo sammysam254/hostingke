@@ -123,72 +123,184 @@
 
         <!-- Dashboard (Hidden by default) -->
         <div id="dashboardPage" class="hidden">
-            <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-                <div class="px-4 py-6 sm:px-0">
-                    <div class="border-4 border-dashed border-gray-200 rounded-lg p-6">
-                        <h1 class="text-3xl font-bold text-gray-900 mb-6">Dashboard</h1>
-                        
-                        <!-- Quick Stats -->
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                            <div class="bg-white overflow-hidden shadow rounded-lg">
-                                <div class="p-5">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0">
-                                            <i class="fas fa-project-diagram text-indigo-600 text-2xl"></i>
+            <!-- Dashboard Header with Hamburger Menu -->
+            <div class="bg-white shadow-sm border-b">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex justify-between items-center py-4">
+                        <div class="flex items-center">
+                            <button id="sidebarToggle" class="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 lg:hidden">
+                                <i class="fas fa-bars text-xl"></i>
+                            </button>
+                            <h1 class="ml-3 text-2xl font-bold text-gray-900">HostingKE Dashboard</h1>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <button id="newProjectBtnHeader" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                                <i class="fas fa-plus mr-2"></i>New Project
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex h-screen bg-gray-50">
+                <!-- Sidebar -->
+                <div id="sidebar" class="hidden lg:flex lg:flex-shrink-0">
+                    <div class="flex flex-col w-64">
+                        <div class="flex flex-col flex-grow bg-white border-r border-gray-200 pt-5 pb-4 overflow-y-auto">
+                            <nav class="mt-5 flex-1 px-2 space-y-1">
+                                <a href="#" id="dashboardNav" class="nav-item active bg-indigo-100 text-indigo-700 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                                    <i class="fas fa-home text-indigo-500 mr-3 text-sm"></i>
+                                    Dashboard
+                                </a>
+                                <a href="#" id="projectsNav" class="nav-item text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                                    <i class="fas fa-rocket text-gray-400 mr-3 text-sm"></i>
+                                    Projects
+                                </a>
+                                <a href="#" id="domainsNav" class="nav-item text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                                    <i class="fas fa-globe text-gray-400 mr-3 text-sm"></i>
+                                    Domains
+                                </a>
+                                <a href="#" id="connectedAppsNav" class="nav-item text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                                    <i class="fas fa-plug text-gray-400 mr-3 text-sm"></i>
+                                    Connected Apps
+                                </a>
+                                <a href="#" id="analyticsNav" class="nav-item text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                                    <i class="fas fa-chart-line text-gray-400 mr-3 text-sm"></i>
+                                    Analytics
+                                </a>
+                                <a href="#" id="settingsNav" class="nav-item text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                                    <i class="fas fa-cog text-gray-400 mr-3 text-sm"></i>
+                                    Settings
+                                </a>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile sidebar overlay -->
+                <div id="sidebarOverlay" class="fixed inset-0 flex z-40 lg:hidden hidden">
+                    <div class="fixed inset-0 bg-gray-600 bg-opacity-75"></div>
+                    <div class="relative flex-1 flex flex-col max-w-xs w-full bg-white">
+                        <div class="absolute top-0 right-0 -mr-12 pt-2">
+                            <button id="closeSidebar" class="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white">
+                                <i class="fas fa-times text-white text-xl"></i>
+                            </button>
+                        </div>
+                        <div class="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
+                            <nav class="mt-5 px-2 space-y-1">
+                                <a href="#" class="mobile-nav-item active bg-indigo-100 text-indigo-700 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                                    <i class="fas fa-home text-indigo-500 mr-4"></i>
+                                    Dashboard
+                                </a>
+                                <a href="#" class="mobile-nav-item text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                                    <i class="fas fa-rocket text-gray-400 mr-4"></i>
+                                    Projects
+                                </a>
+                                <a href="#" class="mobile-nav-item text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                                    <i class="fas fa-globe text-gray-400 mr-4"></i>
+                                    Domains
+                                </a>
+                                <a href="#" class="mobile-nav-item text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-base font-medium rounded-md">
+                                    <i class="fas fa-plug text-gray-400 mr-4"></i>
+                                    Connected Apps
+                                </a>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main content -->
+                <div class="flex flex-col w-0 flex-1 overflow-hidden">
+                    <main class="flex-1 relative overflow-y-auto focus:outline-none">
+                        <!-- Dashboard Overview -->
+                        <div id="dashboardContent" class="dashboard-section">
+                            <div class="py-6">
+                                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                    <!-- Quick Stats -->
+                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                                        <div class="bg-white overflow-hidden shadow rounded-lg">
+                                            <div class="p-5">
+                                                <div class="flex items-center">
+                                                    <div class="flex-shrink-0">
+                                                        <i class="fas fa-project-diagram text-indigo-600 text-2xl"></i>
+                                                    </div>
+                                                    <div class="ml-5 w-0 flex-1">
+                                                        <dl>
+                                                            <dt class="text-sm font-medium text-gray-500 truncate">Projects</dt>
+                                                            <dd class="text-lg font-medium text-gray-900" id="projectCount">0</dd>
+                                                        </dl>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="ml-5 w-0 flex-1">
-                                            <dl>
-                                                <dt class="text-sm font-medium text-gray-500 truncate">Projects</dt>
-                                                <dd class="text-lg font-medium text-gray-900" id="projectCount">0</dd>
-                                            </dl>
+                                        
+                                        <div class="bg-white overflow-hidden shadow rounded-lg">
+                                            <div class="p-5">
+                                                <div class="flex items-center">
+                                                    <div class="flex-shrink-0">
+                                                        <i class="fas fa-rocket text-green-600 text-2xl"></i>
+                                                    </div>
+                                                    <div class="ml-5 w-0 flex-1">
+                                                        <dl>
+                                                            <dt class="text-sm font-medium text-gray-500 truncate">Deployments</dt>
+                                                            <dd class="text-lg font-medium text-gray-900" id="deploymentCount">0</dd>
+                                                        </dl>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="bg-white overflow-hidden shadow rounded-lg">
+                                            <div class="p-5">
+                                                <div class="flex items-center">
+                                                    <div class="flex-shrink-0">
+                                                        <i class="fas fa-globe text-blue-600 text-2xl"></i>
+                                                    </div>
+                                                    <div class="ml-5 w-0 flex-1">
+                                                        <dl>
+                                                            <dt class="text-sm font-medium text-gray-500 truncate">Domains</dt>
+                                                            <dd class="text-lg font-medium text-gray-900" id="domainCount">0</dd>
+                                                        </dl>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="bg-white overflow-hidden shadow rounded-lg">
+                                            <div class="p-5">
+                                                <div class="flex items-center">
+                                                    <div class="flex-shrink-0">
+                                                        <i class="fas fa-chart-line text-purple-600 text-2xl"></i>
+                                                    </div>
+                                                    <div class="ml-5 w-0 flex-1">
+                                                        <dl>
+                                                            <dt class="text-sm font-medium text-gray-500 truncate">Total Views</dt>
+                                                            <dd class="text-lg font-medium text-gray-900" id="viewCount">0</dd>
+                                                        </dl>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-white overflow-hidden shadow rounded-lg">
-                                <div class="p-5">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0">
-                                            <i class="fas fa-rocket text-green-600 text-2xl"></i>
+
+                                    <!-- Recent Projects -->
+                                    <div class="bg-white shadow overflow-hidden sm:rounded-md">
+                                        <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+                                            <div>
+                                                <h3 class="text-lg leading-6 font-medium text-gray-900">Recent Projects</h3>
+                                                <p class="mt-1 max-w-2xl text-sm text-gray-500">Your latest deployed projects</p>
+                                            </div>
+                                            <button id="newProjectBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                                                <i class="fas fa-plus mr-2"></i>New Project
+                                            </button>
                                         </div>
-                                        <div class="ml-5 w-0 flex-1">
-                                            <dl>
-                                                <dt class="text-sm font-medium text-gray-500 truncate">Deployments</dt>
-                                                <dd class="text-lg font-medium text-gray-900" id="deploymentCount">0</dd>
-                                            </dl>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-white overflow-hidden shadow rounded-lg">
-                                <div class="p-5">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0">
-                                            <i class="fas fa-globe text-blue-600 text-2xl"></i>
-                                        </div>
-                                        <div class="ml-5 w-0 flex-1">
-                                            <dl>
-                                                <dt class="text-sm font-medium text-gray-500 truncate">Domains</dt>
-                                                <dd class="text-lg font-medium text-gray-900" id="domainCount">0</dd>
-                                            </dl>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-white overflow-hidden shadow rounded-lg">
-                                <div class="p-5">
-                                    <div class="flex items-center">
-                                        <div class="flex-shrink-0">
-                                            <i class="fas fa-chart-line text-purple-600 text-2xl"></i>
-                                        </div>
-                                        <div class="ml-5 w-0 flex-1">
-                                            <dl>
-                                                <dt class="text-sm font-medium text-gray-500 truncate">Total Views</dt>
-                                                <dd class="text-lg font-medium text-gray-900" id="viewCount">0</dd>
-                                            </dl>
+                                        <div id="recentProjectsList" class="p-8 text-center text-gray-500">
+                                            <i class="fas fa-rocket text-4xl mb-2 text-gray-300"></i>
+                                            <p class="text-lg font-medium">Ready to deploy your first site?</p>
+                                            <p class="text-sm mb-4">Connect your Git repository and go live in seconds!</p>
+                                            <button id="createFirstProjectBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-md font-medium">
+                                                <i class="fas fa-plus mr-2"></i>Create Your First Project
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -196,26 +308,73 @@
                         </div>
 
                         <!-- Projects Section -->
-                        <div class="bg-white shadow overflow-hidden sm:rounded-md">
-                            <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
-                                <div>
-                                    <h3 class="text-lg leading-6 font-medium text-gray-900">Your Projects</h3>
-                                    <p class="mt-1 max-w-2xl text-sm text-gray-500">Deploy and manage your websites</p>
+                        <div id="projectsContent" class="dashboard-section hidden">
+                            <div class="py-6">
+                                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                    <div class="flex justify-between items-center mb-6">
+                                        <h2 class="text-2xl font-bold text-gray-900">Projects</h2>
+                                        <button id="newProjectBtnProjects" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                                            <i class="fas fa-plus mr-2"></i>New Project
+                                        </button>
+                                    </div>
+                                    <div id="allProjectsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        <!-- Projects will be loaded here -->
+                                    </div>
                                 </div>
-                                <button id="newProjectBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
-                                    <i class="fas fa-plus mr-2"></i>New Project
-                                </button>
-                            </div>
-                            <div id="projectsList" class="p-8 text-center text-gray-500">
-                                <i class="fas fa-rocket text-4xl mb-2 text-gray-300"></i>
-                                <p class="text-lg font-medium">Ready to deploy your first site?</p>
-                                <p class="text-sm mb-4">Connect your Git repository and go live in seconds!</p>
-                                <button id="createFirstProjectBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-md font-medium">
-                                    <i class="fas fa-plus mr-2"></i>Create Your First Project
-                                </button>
                             </div>
                         </div>
-                    </div>
+
+                        <!-- Domains Section -->
+                        <div id="domainsContent" class="dashboard-section hidden">
+                            <div class="py-6">
+                                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                    <div class="flex justify-between items-center mb-6">
+                                        <h2 class="text-2xl font-bold text-gray-900">Domains</h2>
+                                        <button id="addDomainBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                                            <i class="fas fa-plus mr-2"></i>Add Domain
+                                        </button>
+                                    </div>
+                                    <div id="domainsList" class="bg-white shadow overflow-hidden sm:rounded-md">
+                                        <!-- Domains will be loaded here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Connected Apps Section -->
+                        <div id="connectedAppsContent" class="dashboard-section hidden">
+                            <div class="py-6">
+                                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                    <h2 class="text-2xl font-bold text-gray-900 mb-6">Connected Apps</h2>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        <div id="githubConnection" class="bg-white overflow-hidden shadow rounded-lg">
+                                            <div class="p-6">
+                                                <div class="flex items-center">
+                                                    <div class="flex-shrink-0">
+                                                        <i class="fab fa-github text-4xl text-gray-900"></i>
+                                                    </div>
+                                                    <div class="ml-5 flex-1">
+                                                        <h3 class="text-lg font-medium text-gray-900">GitHub</h3>
+                                                        <p class="text-sm text-gray-500">Connect your GitHub repositories</p>
+                                                        <div id="githubStatus" class="mt-2">
+                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                                Not Connected
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-4">
+                                                    <button id="connectGitHubApps" class="w-full bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-md text-sm font-medium">
+                                                        Connect GitHub
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
                 </div>
             </div>
         </div>
@@ -335,7 +494,33 @@
         </div>
     </div>
 
-    <script>
+    <!-- Add Domain Modal -->
+    <div id="addDomainModal" class="modal fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 text-center mb-6">Add Custom Domain</h3>
+                <form id="addDomainForm">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Domain Name</label>
+                        <input type="text" id="domainName" placeholder="example.com" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <p class="text-xs text-gray-500 mt-1">Enter your domain without www or https://</p>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Select Project</label>
+                        <select id="domainProject" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">Select a project...</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <button type="button" id="closeAddDomainModal" class="px-4 py-2 text-gray-600 hover:text-gray-800">Cancel</button>
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                            Add Domain
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
         // Global variables
         let currentUser = null;
         let authToken = localStorage.getItem('authToken');
@@ -1091,6 +1276,346 @@
             document.getElementById('domainCount').textContent = data.totalDomains || 0;
             document.getElementById('viewCount').textContent = data.totalViews || 0;
         }
+
+        // Dashboard navigation setup
+        function setupDashboardNavigation() {
+            // Sidebar toggle
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const closeSidebar = document.getElementById('closeSidebar');
+
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    sidebarOverlay.classList.remove('hidden');
+                });
+            }
+
+            if (closeSidebar) {
+                closeSidebar.addEventListener('click', function() {
+                    sidebarOverlay.classList.add('hidden');
+                });
+            }
+
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', function(e) {
+                    if (e.target === sidebarOverlay) {
+                        sidebarOverlay.classList.add('hidden');
+                    }
+                });
+            }
+
+            // Navigation items
+            const navItems = {
+                'dashboardNav': 'dashboard',
+                'projectsNav': 'projects',
+                'domainsNav': 'domains',
+                'connectedAppsNav': 'connectedApps'
+            };
+
+            Object.keys(navItems).forEach(navId => {
+                const navElement = document.getElementById(navId);
+                if (navElement) {
+                    navElement.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        switchDashboardSection(navItems[navId]);
+                    });
+                }
+            });
+        }
+
+        // Switch dashboard sections
+        function switchDashboardSection(section) {
+            console.log('Switching to section:', section);
+            
+            // Hide all sections
+            const sections = document.querySelectorAll('.dashboard-section');
+            sections.forEach(s => s.classList.add('hidden'));
+            
+            // Show selected section
+            const targetSection = document.getElementById(section + 'Content');
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+            }
+            
+            // Update navigation active state
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => {
+                item.classList.remove('active', 'bg-indigo-100', 'text-indigo-700');
+                item.classList.add('text-gray-600');
+            });
+            
+            const activeNav = document.getElementById(section + 'Nav');
+            if (activeNav) {
+                activeNav.classList.add('active', 'bg-indigo-100', 'text-indigo-700');
+                activeNav.classList.remove('text-gray-600');
+            }
+            
+            // Load section-specific data
+            loadSectionData(section);
+            
+            // Close mobile sidebar
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            if (sidebarOverlay) {
+                sidebarOverlay.classList.add('hidden');
+            }
+        }
+
+        // Load data for specific sections
+        function loadSectionData(section) {
+            switch (section) {
+                case 'dashboard':
+                    loadDashboardData();
+                    break;
+                case 'projects':
+                    loadAllProjects();
+                    break;
+                case 'domains':
+                    loadDomains();
+                    break;
+                case 'connectedApps':
+                    loadConnectedApps();
+                    break;
+            }
+        }
+
+        // Load all projects for projects section
+        async function loadAllProjects() {
+            if (!authToken) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/projects`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displayAllProjects(data.projects || []);
+                }
+            } catch (error) {
+                console.error('Error loading projects:', error);
+            }
+        }
+
+        // Display all projects in grid
+        function displayAllProjects(projects) {
+            const container = document.getElementById('allProjectsList');
+            if (!container) return;
+
+            if (projects.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <i class="fas fa-rocket text-6xl text-gray-300 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">No projects yet</h3>
+                        <p class="text-gray-500 mb-4">Create your first project to get started</p>
+                        <button onclick="showCreateProject()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-md font-medium">
+                            <i class="fas fa-plus mr-2"></i>Create Project
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            const projectsHTML = projects.map(project => `
+                <div class="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-medium text-gray-900">${project.name}</h3>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${project.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                                ${project.status}
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-500 mb-4">${project.slug}.hostingke.com</p>
+                        <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+                            <span><i class="fas fa-rocket mr-1"></i>${project.deployment_count || 0} deployments</span>
+                            <span><i class="fas fa-clock mr-1"></i>${new Date(project.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="openProject('${project.slug}')" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded text-sm font-medium">
+                                <i class="fas fa-external-link-alt mr-1"></i>Open
+                            </button>
+                            <button onclick="viewProject('${project.id}')" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded text-sm font-medium">
+                                <i class="fas fa-cog mr-1"></i>Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = projectsHTML;
+        }
+
+        // Open project in new tab
+        function openProject(slug) {
+            window.open(`https://${slug}.hostingke.com`, '_blank');
+        }
+
+        // View project details (placeholder)
+        function viewProject(projectId) {
+            alert(`Project settings for ${projectId} - Coming soon!`);
+        }
+
+        // Load domains
+        async function loadDomains() {
+            if (!authToken) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/domains`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displayDomains(data.domains || []);
+                }
+            } catch (error) {
+                console.error('Error loading domains:', error);
+            }
+        }
+
+        // Display domains
+        function displayDomains(domains) {
+            const container = document.getElementById('domainsList');
+            if (!container) return;
+
+            if (domains.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-globe text-6xl text-gray-300 mb-4"></i>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">No custom domains</h3>
+                        <p class="text-gray-500 mb-4">Add a custom domain to your projects</p>
+                        <button onclick="showAddDomain()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-md font-medium">
+                            <i class="fas fa-plus mr-2"></i>Add Domain
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            const domainsHTML = domains.map(domain => `
+                <li class="border-b border-gray-200 last:border-b-0">
+                    <div class="px-4 py-4 flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center">
+                                <h4 class="text-sm font-medium text-gray-900">${domain.domain}</h4>
+                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${domain.verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                                    ${domain.verified ? 'Verified' : 'Pending'}
+                                </span>
+                                ${domain.ssl_enabled ? '<i class="fas fa-lock text-green-500 ml-2" title="SSL Enabled"></i>' : ''}
+                            </div>
+                            <p class="text-sm text-gray-500">${domain.project_name}</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="manageDomain('${domain.id}')" class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
+                                Manage
+                            </button>
+                        </div>
+                    </div>
+                </li>
+            `).join('');
+
+            container.innerHTML = `<ul class="divide-y divide-gray-200">${domainsHTML}</ul>`;
+        }
+
+        // Load connected apps
+        function loadConnectedApps() {
+            const githubStatus = document.getElementById('githubStatus');
+            const connectBtn = document.getElementById('connectGitHubApps');
+            
+            if (currentUser && currentUser.githubConnected) {
+                if (githubStatus) {
+                    githubStatus.innerHTML = `
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <i class="fas fa-check mr-1"></i>Connected
+                        </span>
+                    `;
+                }
+                if (connectBtn) {
+                    connectBtn.textContent = 'Manage GitHub';
+                    connectBtn.classList.remove('bg-gray-900', 'hover:bg-gray-800');
+                    connectBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                }
+            }
+        }
+
+        // Domain management functions
+        function showAddDomain() {
+            // Load projects for domain selection
+            loadProjectsForDomain();
+            document.getElementById('addDomainModal').classList.add('show');
+        }
+
+        function hideAddDomain() {
+            document.getElementById('addDomainModal').classList.remove('show');
+        }
+
+        async function loadProjectsForDomain() {
+            if (!authToken) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/projects`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const select = document.getElementById('domainProject');
+                    if (select) {
+                        select.innerHTML = '<option value="">Select a project...</option>';
+                        data.projects.forEach(project => {
+                            select.innerHTML += `<option value="${project.id}">${project.name}</option>`;
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading projects for domain:', error);
+            }
+        }
+
+        async function handleAddDomain(event) {
+            event.preventDefault();
+            
+            const domain = document.getElementById('domainName').value;
+            const projectId = document.getElementById('domainProject').value;
+            
+            if (!domain || !projectId) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/domains`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ domain, project_id: projectId })
+                });
+
+                if (response.ok) {
+                    alert('Domain added successfully! Please configure your DNS settings.');
+                    hideAddDomain();
+                    loadDomains();
+                } else {
+                    const error = await response.json();
+                    alert('Failed to add domain: ' + (error.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error adding domain:', error);
+                alert('Error adding domain. Please try again.');
+            }
+        }
+
+        function manageDomain(domainId) {
+            alert(`Domain management for ${domainId} - Coming soon!`);
+        }
+
+        // Update setupEventListeners to include dashboard navigation
+        const originalSetupEventListeners = setupEventListeners;
+        setupEventListeners = function() {
+            originalSetupEventListeners();
+            setupDashboardNavigation();
+        };
 
         // Close modals when clicking outside
         window.addEventListener('click', function(event) {
