@@ -311,16 +311,26 @@ class HostingPlatform {
 
   async setupServices() {
     try {
+      // Initialize critical services
       await SupabaseService.connect();
-      await CDNService.initialize();
+      console.log('✅ Supabase connected');
       
       // Initialize deployment queue
       const DeploymentQueue = require('./services/deploymentQueue');
       DeploymentQueue.initialize(this.io);
+      console.log('✅ Deployment queue initialized');
+      
+      // Initialize optional services with error handling
+      try {
+        await CDNService.initialize();
+        console.log('✅ CDN service initialized');
+      } catch (error) {
+        console.warn('⚠️ CDN service failed to initialize (optional):', error.message);
+      }
       
       console.log('Services initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize services:', error);
+      console.error('Failed to initialize critical services:', error);
       process.exit(1);
     }
   }
