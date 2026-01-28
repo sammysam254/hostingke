@@ -530,21 +530,39 @@ router.get('/github/repos', async (req, res) => {
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    // Get user from our database
-    const { data: authData, error: authError } = await SupabaseService.getUser(accessToken);
-
-    if (authError || !authData.user) {
-      return res.status(401).json({ error: 'Invalid token' });
+    let userId = null;
+    
+    // Try to decode as custom session token first
+    try {
+      const decoded = JSON.parse(Buffer.from(accessToken, 'base64').toString());
+      if (decoded.userId && decoded.exp && decoded.exp > Date.now()) {
+        userId = decoded.userId;
+        console.log('Using custom session token for user:', userId);
+      }
+    } catch (e) {
+      // Not a custom token, try Supabase Auth
+      console.log('Not a custom token, trying Supabase Auth...');
+    }
+    
+    // If not a custom token, try Supabase Auth
+    if (!userId) {
+      const { data: authData, error: authError } = await SupabaseService.getUser(accessToken);
+      if (authError || !authData.user) {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+      userId = authData.user.id;
+      console.log('Using Supabase Auth token for user:', userId);
     }
 
     // Get user profile to get GitHub access token
     const { data: userProfile, error: profileError } = await SupabaseService.getAdminClient()
       .from('users')
       .select('git_providers')
-      .eq('id', authData.user.id)
+      .eq('id', userId)
       .single();
 
     if (profileError) {
+      console.error('Error getting user profile:', profileError);
       return res.status(400).json({ error: 'User not found' });
     }
 
@@ -552,9 +570,11 @@ router.get('/github/repos', async (req, res) => {
     const githubProvider = userProfile.git_providers?.find(p => p.provider === 'github');
     
     if (!githubProvider || !githubProvider.access_token) {
+      console.log('GitHub provider not found or no access token');
       return res.status(400).json({ error: 'GitHub not connected' });
     }
 
+    console.log('Fetching repositories from GitHub...');
     // Fetch repositories from GitHub
     const reposResponse = await fetch('https://api.github.com/user/repos?sort=updated&per_page=100', {
       headers: {
@@ -564,10 +584,12 @@ router.get('/github/repos', async (req, res) => {
     });
 
     if (!reposResponse.ok) {
-      return res.status(400).json({ error: 'Failed to fetch repositories' });
+      console.error('GitHub API error:', reposResponse.status, reposResponse.statusText);
+      return res.status(400).json({ error: 'Failed to fetch repositories from GitHub' });
     }
 
     const repos = await reposResponse.json();
+    console.log('Fetched repositories:', repos.length);
     
     // Filter and format repositories
     const formattedRepos = repos
@@ -585,10 +607,73 @@ router.get('/github/repos', async (req, res) => {
         private: repo.private,
       }));
 
+    console.log('Returning formatted repositories:', formattedRepos.length);
     res.json({ repositories: formattedRepos });
   } catch (error) {
     console.error('GitHub repos error:', error);
     res.status(500).json({ error: 'Failed to fetch repositories' });
+  }
+});
+
+// Debug endpoint to check token and user status
+router.get('/debug/token', async (req, res) => {
+  try {
+    const accessToken = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!accessToken) {
+      return res.json({ error: 'No token provided', hasToken: false });
+    }
+
+    let result = { hasToken: true, tokenType: 'unknown' };
+    
+    // Try to decode as custom session token
+    try {
+      const decoded = JSON.parse(Buffer.from(accessToken, 'base64').toString());
+      result.tokenType = 'custom';
+      result.customToken = {
+        userId: decoded.userId,
+        email: decoded.email,
+        exp: decoded.exp,
+        expired: decoded.exp < Date.now(),
+        githubConnected: decoded.githubConnected
+      };
+      
+      if (decoded.userId) {
+        // Check if user exists
+        const { data: userProfile, error: profileError } = await SupabaseService.getAdminClient()
+          .from('users')
+          .select('id, email, git_providers')
+          .eq('id', decoded.userId)
+          .single();
+        
+        result.userExists = !profileError;
+        if (!profileError) {
+          result.user = {
+            id: userProfile.id,
+            email: userProfile.email,
+            hasGitHubProvider: userProfile.git_providers?.some(p => p.provider === 'github') || false
+          };
+        }
+      }
+    } catch (e) {
+      // Try Supabase Auth
+      try {
+        const { data: authData, error: authError } = await SupabaseService.getUser(accessToken);
+        result.tokenType = 'supabase';
+        result.supabaseAuth = {
+          valid: !authError,
+          userId: authData?.user?.id,
+          email: authData?.user?.email
+        };
+      } catch (e2) {
+        result.tokenType = 'invalid';
+        result.error = 'Could not decode token';
+      }
+    }
+    
+    res.json(result);
+  } catch (error) {
+    res.json({ error: error.message, hasToken: false });
   }
 });
 

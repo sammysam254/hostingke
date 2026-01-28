@@ -613,6 +613,19 @@
         }
 
         async function checkGitHubConnection() {
+            console.log('Checking GitHub connection...');
+            
+            // First, debug the token
+            try {
+                const debugResponse = await fetch(`${API_BASE}/debug/token`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const debugData = await debugResponse.json();
+                console.log('Token debug info:', debugData);
+            } catch (e) {
+                console.log('Debug endpoint not available');
+            }
+            
             try {
                 const response = await fetch(`${API_BASE}/auth/github/repos`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
@@ -620,11 +633,15 @@
 
                 if (response.ok) {
                     // GitHub is connected, load repositories
+                    console.log('GitHub connection verified, loading repositories...');
                     showGitHubConnected();
                     loadGitHubRepositories();
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.log('GitHub connection check failed:', response.status, errorData);
                 }
             } catch (error) {
-                console.log('GitHub not connected or error checking connection');
+                console.log('GitHub connection check error:', error);
             }
         }
 
@@ -774,9 +791,11 @@
 
         async function loadGitHubRepositories() {
             console.log('Loading GitHub repositories...');
+            console.log('Auth token:', authToken ? 'Present' : 'Missing');
             
             if (!authToken) {
                 console.error('No auth token available');
+                showRepositoryError('Authentication required. Please log in again.');
                 return;
             }
 
@@ -786,24 +805,38 @@
             if (loadingDiv) loadingDiv.style.display = 'block';
             
             try {
+                console.log('Making request to:', `${API_BASE}/auth/github/repos`);
                 const response = await fetch(`${API_BASE}/auth/github/repos`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
 
+                console.log('Response status:', response.status);
+                
                 if (response.ok) {
                     const data = await response.json();
                     console.log('Repositories loaded:', data.repositories?.length || 0);
+                    console.log('Sample repository:', data.repositories?.[0]);
+                    
                     displayRepositories(data.repositories || []);
                     
                     // Show GitHub connected state
                     showGitHubConnected();
                 } else {
-                    console.error('Failed to load repositories:', response.status);
-                    showRepositoryError('Failed to load repositories. Please try reconnecting GitHub.');
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('Failed to load repositories:', response.status, errorData);
+                    
+                    let errorMessage = 'Failed to load repositories.';
+                    if (response.status === 401) {
+                        errorMessage = 'Authentication failed. Please reconnect GitHub.';
+                    } else if (response.status === 400 && errorData.error === 'GitHub not connected') {
+                        errorMessage = 'GitHub not connected. Please connect your GitHub account.';
+                    }
+                    
+                    showRepositoryError(errorMessage);
                 }
             } catch (error) {
                 console.error('Error loading repositories:', error);
-                showRepositoryError('Error loading repositories. Please check your connection.');
+                showRepositoryError('Network error. Please check your connection and try again.');
             } finally {
                 if (loadingDiv) loadingDiv.style.display = 'none';
             }
