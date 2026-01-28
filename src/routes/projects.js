@@ -58,10 +58,19 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     console.log('Creating project with data:', req.body);
-    const { name, repository_url, branch, build_settings, git_provider } = req.body;
+    const { name, repository, build_settings } = req.body;
 
-    if (!name || !repository_url) {
-      return res.status(400).json({ error: 'Project name and repository URL are required' });
+    if (!name || !repository) {
+      return res.status(400).json({ error: 'Project name and repository are required' });
+    }
+
+    // Extract repository information
+    const repository_url = repository.url || repository.clone_url;
+    const branch = repository.branch || repository.default_branch || 'main';
+    const git_provider = repository.provider || 'github';
+
+    if (!repository_url) {
+      return res.status(400).json({ error: 'Repository URL is required' });
     }
 
     // Generate unique slug
@@ -86,24 +95,32 @@ router.post('/', async (req, res) => {
     const projectData = {
       name,
       slug,
-      repository_url,
-      branch: branch || 'main',
-      build_settings: {
-        command: build_settings?.command || null,
-        directory: build_settings?.directory || null,
-        environment: {}
+      owner_id: req.user.id,
+      repository: {
+        provider: git_provider,
+        url: repository_url,
+        branch: branch,
+        full_name: repository.full_name
       },
-      git_provider: git_provider || 'github',
-      status: 'pending'
+      build_settings: {
+        command: build_settings?.command || 'npm run build',
+        directory: build_settings?.directory || 'dist',
+        environment: build_settings?.environment || {}
+      },
+      status: 'active'
     };
 
     console.log('Creating project with processed data:', projectData);
 
-    const { data: project, error } = await SupabaseService.createProject(req.user.id, projectData);
+    const { data: project, error } = await SupabaseService.getAdminClient()
+      .from('projects')
+      .insert(projectData)
+      .select()
+      .single();
 
     if (error) {
       console.error('Create project error:', error);
-      return res.status(500).json({ error: 'Failed to create project' });
+      return res.status(500).json({ error: 'Failed to create project: ' + error.message });
     }
 
     console.log('Project created successfully:', project.id);
@@ -115,12 +132,16 @@ router.post('/', async (req, res) => {
         project_id: project.id,
         commit_sha: null,
         commit_message: 'Initial deployment',
-        branch: branch || 'main',
+        branch: branch,
         environment: 'production',
-        status: 'pending'
+        status: 'queued'
       };
 
-      const { data: deployment, error: deployError } = await SupabaseService.createDeployment(deploymentData);
+      const { data: deployment, error: deployError } = await SupabaseService.getAdminClient()
+        .from('deployments')
+        .insert(deploymentData)
+        .select()
+        .single();
 
       if (deployError) {
         console.error('Failed to create initial deployment:', deployError);
@@ -128,9 +149,12 @@ router.post('/', async (req, res) => {
         console.log('Initial deployment created:', deployment.id);
         
         // Start deployment process (async)
-        DeploymentService.processDeployment(deployment.id).catch(err => {
-          console.error('Deployment processing failed:', err);
-        });
+        try {
+          const DeploymentQueue = require('../services/deploymentQueue');
+          DeploymentQueue.addDeployment(deployment);
+        } catch (queueError) {
+          console.error('Failed to queue deployment:', queueError);
+        }
       }
     } catch (deploymentError) {
       console.error('Deployment trigger failed:', deploymentError);
@@ -139,7 +163,7 @@ router.post('/', async (req, res) => {
     res.status(201).json({ project });
   } catch (error) {
     console.error('Create project error:', error);
-    res.status(500).json({ error: 'Failed to create project' });
+    res.status(500).json({ error: 'Failed to create project: ' + error.message });
   }
 });
 
